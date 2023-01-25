@@ -1,5 +1,5 @@
 """
-File: read.py
+File: wav.py
 Author: Jeff Martin
 Date: 1/25/23
 
@@ -9,6 +9,8 @@ This is a no-nonsense WAV file reader. Reference: https://ccrma.stanford.edu/cou
 import numpy as np
 
 HEADER_SIZE = 44
+LARGE_FIELD = 4
+SMALL_FIELD = 2
 
 class AudioFile:
     def __init__(self):
@@ -21,9 +23,10 @@ class AudioFile:
         self.num_samples = 0
         self.sample_rate = 0
         self.samples = None
+        self.scaling_factor = 0
 
 
-def read_wav(file_name):
+def read_wav(file_name) -> AudioFile:
     """
     Reads a WAV file and returns an AudioFile object with the data.
     :param file_name: The name of the file
@@ -40,9 +43,8 @@ def read_wav(file_name):
         audio_file.byte_rate = int.from_bytes(audio_file.header[28:32], byteorder="little", signed=False)
         audio_file.bits_per_sample = int.from_bytes(audio_file.header[34:36], byteorder="little", signed=False)
         audio_file.bytes_per_sample = audio_file.bits_per_sample // 8
-        audio_file.num_samples = (int.from_bytes(audio_file.header[4:8], byteorder="little", signed=False) - 36) // (audio_file.num_channels * audio_file.bytes_per_sample)
-        audio_file.num_frames = audio_file.num_samples // audio_file.num_channels
-
+        audio_file.num_frames = (int.from_bytes(audio_file.header[4:8], byteorder="little", signed=False) - 36) // (audio_file.num_channels * audio_file.bytes_per_sample)
+        
         # Read the samples. The channels are interleaved, so for now we will read the samples for all channels together.
         for i in range(audio_file.num_frames):
             audio_data.append(audio.read(audio_file.bytes_per_sample * audio_file.num_channels))
@@ -56,9 +58,47 @@ def read_wav(file_name):
                 samples[j, i] = int.from_bytes(audio_data[i][j * audio_file.bytes_per_sample : (j + 1) * audio_file.bytes_per_sample], byteorder="little", signed=True)
         
         # Scale the samples to float values from -1 to 1.
-        max_sample = np.max(np.abs(samples))
+        audio_file.scaling_factor = np.max(np.abs(samples))
         for i in range(audio_file.num_frames):
             for j in range(audio_file.num_channels):
-                audio_file.samples[j, i] = samples[j, i] / max_sample
+                audio_file.samples[j, i] = samples[j, i] / audio_file.scaling_factor
 
     return audio_file
+
+
+def write_wav(file: AudioFile, path: str):
+    """
+    Writes an audio file
+    :param file: An AudioFile representation of the file
+    :param path: A file path
+    :return: None
+    Note that in the AudioFile, the following parameters should be properly set:
+    - num_channels (e.g. 1)
+    - sample_rate (e.g. 44000)
+    - byte_rate
+    - bits_per_sample (e.g. 16, 24, 32)
+    - bytes_per_sample (e.g. 2, 3, 4)
+    - num_samples
+    - num_frames
+    - scaling_factor
+    """
+    with open(path, "wb") as audio:
+        header = b"".join([
+            b"RIFF",
+            (36 + file.num_frames * file.num_channels * file.bytes_per_sample).to_bytes(LARGE_FIELD, byteorder="little", signed=False),
+            b"WAVE",
+            b"fmt ",
+            int(16).to_bytes(LARGE_FIELD, byteorder="little", signed=False),
+            int(1).to_bytes(SMALL_FIELD, byteorder="little", signed=False),
+            file.num_channels.to_bytes(SMALL_FIELD, byteorder="little", signed=False),
+            file.sample_rate.to_bytes(LARGE_FIELD, byteorder="little", signed=False),
+            file.byte_rate.to_bytes(LARGE_FIELD, byteorder="little", signed=False),
+            (file.num_channels * file.bytes_per_sample).to_bytes(SMALL_FIELD, byteorder="little", signed=False),
+            file.bits_per_sample.to_bytes(SMALL_FIELD, byteorder="little", signed=False),
+            b"data",
+            (file.num_frames * file.num_channels * file.bytes_per_sample).to_bytes(LARGE_FIELD, byteorder="little", signed=False)
+        ])
+        audio.write(header)
+        for i in range(file.num_frames):
+            for j in range(file.num_channels):
+                audio.write(int(file.samples[j, i] * file.scaling_factor).to_bytes(file.bytes_per_sample, byteorder="little", signed=True))
