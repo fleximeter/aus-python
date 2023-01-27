@@ -20,7 +20,6 @@ class AudioFile:
         self.header = b""
         self.num_channels = 0
         self.num_frames = 0
-        self.num_samples = 0
         self.sample_rate = 0
         self.samples = None
         self.scaling_factor = 0
