@@ -56,11 +56,13 @@ def read_wav(file_name) -> AudioFile:
             for j in range(audio_file.num_channels):
                 samples[j, i] = int.from_bytes(audio_data[i][j * audio_file.bytes_per_sample : (j + 1) * audio_file.bytes_per_sample], byteorder="little", signed=True)
         
+        audio_file.samples = samples
         # Scale the samples to float values from -1 to 1.
-        audio_file.scaling_factor = np.max(np.abs(samples))
-        for i in range(audio_file.num_frames):
-            for j in range(audio_file.num_channels):
-                audio_file.samples[j, i] = samples[j, i] / audio_file.scaling_factor
+        # audio_file.scaling_factor = np.max(np.abs(samples))
+        # for i in range(audio_file.num_frames):
+        #     for j in range(audio_file.num_channels):
+        #         audio_file.samples[j, i] = samples[j, i] / audio_file.scaling_factor
+        
 
     return audio_file
 
@@ -101,3 +103,12 @@ def write_wav(file: AudioFile, path: str):
         for i in range(file.num_frames):
             for j in range(file.num_channels):
                 audio.write(int(file.samples[j, i] * file.scaling_factor).to_bytes(file.bytes_per_sample, byteorder="little", signed=True))
+
+def scale_wav(wav_data):
+    """
+    Scales a provided NumPy array with wavfile data
+    :param wav_data: A NumPy array
+    :return: The scaling denominator and a scaled array
+    """
+    scaler = np.max(wav_data)
+    return scaler, wav_data / scaler

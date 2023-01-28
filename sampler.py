@@ -25,18 +25,26 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: int = 0.01, nu
     num_below_threshold = 0
     last_above_threshold = 0
 
-    for i in range(audio.num_frames):
-        if np.abs(audio.samples[channel_index, i]) >= level_delimiter:
+    if len(audio.shape) > 1:
+        audio = audio[channel_index, :]
+    num_frames = audio.shape[0]
+
+    for i in range(num_frames):
+        if np.abs(audio[i]) >= level_delimiter:
             last_above_threshold = i
             num_below_threshold = 0
             if current_region is None:
                 current_region = i
-        elif np.abs(audio.samples[channel_index, i]) < level_delimiter:
+        elif np.abs(audio[i]) < level_delimiter:
             num_below_threshold += 1
             if current_region is not None and num_below_threshold >= num_consecutive:
                 regions.append((current_region, last_above_threshold))
                 current_region = None
 
     if current_region is not None:
-        regions.append((current_region, audio.num_frames - 1))
+        regions.append((current_region, num_frames - 1))
     return regions
+
+
+def detect_peaks():
+    pass
