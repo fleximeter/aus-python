@@ -91,16 +91,17 @@ def detect_major_peaks(audio: AudioFile, max_difference_ratio: float = 0.1, chun
     :return: Returns a list of tuples; the tuple has an index and an amplitude value.
     """
     peaks = []
-    for i in range(1, audio.num_frames, chunk_width - 1):
+    for i in range(1, audio.num_frames - 1, chunk_width):
         peak_idx = i + np.argmax(np.abs(audio.samples[channel_index, i:i+chunk_width]))
         peak_val = np.abs(audio.samples[channel_index, peak_idx])
-        for j in range(i, i + chunk_width):
-            if audio.samples[channel_index, i-1] < audio.samples[channel_index, i] > audio.samples[channel_index, i+1] \
-                and audio.samples[channel_index, i] > 0:
-                if np.abs((peak_val - np.abs(audio.samples[channel_index, j])) / peak_val) <= max_difference_ratio:
-                    peaks.append((j, audio.samples[channel_index, j]))
-            elif audio.samples[channel_index, i-1] > audio.samples[channel_index, i] < audio.samples[channel_index, i+1] \
-                and audio.samples[channel_index, i] < 0:
-                if np.abs((peak_val - np.abs(audio.samples[channel_index, j])) / peak_val) <= max_difference_ratio:
-                    peaks.append((j, audio.samples[channel_index, j]))
+        print(peak_idx, peak_val)
+
+        j = i
+        while j < i + chunk_width and j < audio.num_frames - 1:
+            if ((audio.samples[channel_index, j-1] < audio.samples[channel_index, j] > audio.samples[channel_index, j+1] and audio.samples[channel_index, j] > 0) \
+                or (audio.samples[channel_index, j-1] > audio.samples[channel_index, j] < audio.samples[channel_index, j+1] and audio.samples[channel_index, j] < 0)) \
+                and np.abs((peak_val - np.abs(audio.samples[channel_index, j])) / peak_val) <= max_difference_ratio:
+                peaks.append((j, audio.samples[channel_index, j]))
+            j += 1
+
     return peaks

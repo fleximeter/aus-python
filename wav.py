@@ -4,6 +4,7 @@ Author: Jeff Martin
 Date: 1/25/23
 
 This is a no-nonsense WAV file reader. Reference: https://ccrma.stanford.edu/courses/422-winter-2014/projects/WaveFormat/
+For future reference, to support 32-bit float files, reference https://www.sounddevices.com/32-bit-float-files-explained/.
 """
 
 import numpy as np
@@ -27,7 +28,15 @@ class AudioFile:
 
 def read_wav(file_name) -> AudioFile:
     """
-    Reads a WAV file and returns an AudioFile object with the data.
+    Reads a WAV file and returns an AudioFile object with the data. Currently this implementation
+    supports reading 16-bit and 24-bit WAV files, and should support any sample rate. 32-bit float
+    files are not yet supported.
+    The advantage of this implementation over the SciPy wavfile functionality is that it preserves
+    more information so that you can reconstruct the original WAV file more accurately. For example,
+    SciPy (at the time of writing) stores 24-bit samples in np.int32 format *but* left-shifts the
+    absolute value of every sample by 8 bytes, inflating the amplitude. This implementation does
+    not do that. Furthermore, it records the bit depth of the file so that you can actually write
+    in 24-bit format. 
     :param file_name: The name of the file
     :return: An AudioFile object with the contents of the WAV file
     """
@@ -77,7 +86,8 @@ def read_wav(file_name) -> AudioFile:
                     audio_file.bits_per_sample = int.from_bytes(fmt_chunk[14:16], byteorder="little", signed=False)
                     audio_file.bytes_per_sample = audio_file.bits_per_sample // 8
 
-        # Now that the file has been read, we continue to read the remaining subchunks
+        # Now that the file has been read, we continue to read the remaining subchunks.
+        # The only remaining subchunk we are interested in is the data subchunk.
         if valid_file:
             while remaining_size > 0:
                 subchunk_header = audio.read(CHUNK_HEADER_SIZE)
@@ -86,7 +96,8 @@ def read_wav(file_name) -> AudioFile:
                 subchunk_data = audio.read(subchunk_size)
                 remaining_size -= subchunk_size
 
-                # Detect if we've read a data subchunk
+                # Detect if we've read a data subchunk. If this is something else
+                # (e.g. a JUNK subchunk), we ignore it.
                 if subchunk_header[:4] == DATA_CHUNK_1:
                     audio_file.num_frames = subchunk_size // (audio_file.num_channels * audio_file.bytes_per_sample)
                     audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.int32)
@@ -99,10 +110,13 @@ def read_wav(file_name) -> AudioFile:
                                 signed=True
                             )        
 
+    # If the WAV file was formatted unusually (for example, not in PCM), we return nothing
+    # and raise a warning.
     if valid_file:
         return audio_file
     else:
-        raise RuntimeWarning("The WAV file was improperly formatted and could not be read.")
+        raise RuntimeWarning("The WAV file was unusually formatted and could not be read." +
+            "This might be because you tried to read a WAV file that was not in PCM format.")
 
 
 def write_wav(file: AudioFile, path: str):
