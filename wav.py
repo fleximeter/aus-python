@@ -8,21 +8,21 @@ This is a no-nonsense WAV file reader. Reference: https://ccrma.stanford.edu/cou
 
 import numpy as np
 
-HEADER_SIZE = 44
 LARGE_FIELD = 4
 SMALL_FIELD = 2
+
 
 class AudioFile:
     def __init__(self):
         self.bits_per_sample = 0
+        self.block_align = 0
         self.byte_rate = 0
         self.bytes_per_sample = 0
-        self.header = b""
         self.num_channels = 0
         self.num_frames = 0
         self.sample_rate = 0
         self.samples = None
-        self.scaling_factor = 0
+        self.scaling_factor = 1
 
 
 def read_wav(file_name) -> AudioFile:
@@ -32,39 +32,77 @@ def read_wav(file_name) -> AudioFile:
     :return: An AudioFile object with the contents of the WAV file
     """
     audio_file = AudioFile()
-    audio_data = []
     with open(file_name, "rb") as audio:
         # Read the header. We will store the entire header in the AudioFile object which will make it easier to write
         # back to the file.
-        audio_file.header = audio.read(HEADER_SIZE)
-        audio_file.num_channels = int.from_bytes(audio_file.header[22:24], byteorder="little", signed=False)
-        audio_file.sample_rate = int.from_bytes(audio_file.header[24:28], byteorder="little", signed=False)
-        audio_file.byte_rate = int.from_bytes(audio_file.header[28:32], byteorder="little", signed=False)
-        audio_file.bits_per_sample = int.from_bytes(audio_file.header[34:36], byteorder="little", signed=False)
-        audio_file.bytes_per_sample = audio_file.bits_per_sample // 8
-        audio_file.num_frames = (int.from_bytes(audio_file.header[4:8], byteorder="little", signed=False) - 36) // (audio_file.num_channels * audio_file.bytes_per_sample)
+        CHUNK_HEADER_SIZE = 8
+        RIFF_CHUNK_SIZE = 12
+        RIFF_CHUNK_1 = b'RIFF'
+        RIFF_CHUNK_3 = b'WAVE'
+        FMT_CHUNK_1 = b'fmt '
+        DATA_CHUNK_1 = b'data'
+        remaining_size = 0
+        chunk_riff = audio.read(RIFF_CHUNK_SIZE)
         
-        # Read the samples. The channels are interleaved, so for now we will read the samples for all channels together.
-        for i in range(audio_file.num_frames):
-            audio_data.append(audio.read(audio_file.bytes_per_sample * audio_file.num_channels))
+        # We use this to validate the file as we go. If we encounter corrupt data, we will flip this to False.
+        valid_file = True
 
-        samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.int32)
-        audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.float32)
-
-        # Separate the samples from different channels. The 2D array is of dimension num channels x num frames.
-        for i in range(audio_file.num_frames):
-            for j in range(audio_file.num_channels):
-                samples[j, i] = int.from_bytes(audio_data[i][j * audio_file.bytes_per_sample : (j + 1) * audio_file.bytes_per_sample], byteorder="little", signed=True)
+        # Validate the RIFF chunk before proceeding
+        if chunk_riff[:4] != RIFF_CHUNK_1 or chunk_riff[8:] != RIFF_CHUNK_3:
+            valid_file = False
+        else:
+            remaining_size = int.from_bytes(chunk_riff[4:8], byteorder="little", signed=False)
         
-        audio_file.samples = samples
-        # Scale the samples to float values from -1 to 1.
-        # audio_file.scaling_factor = np.max(np.abs(samples))
-        # for i in range(audio_file.num_frames):
-        #     for j in range(audio_file.num_channels):
-        #         audio_file.samples[j, i] = samples[j, i] / audio_file.scaling_factor
-        
+        # Read the format subchunk
+        if valid_file:
+            data = audio.read(CHUNK_HEADER_SIZE)
+            remaining_size -= CHUNK_HEADER_SIZE
+            if data[:4] != FMT_CHUNK_1:
+                valid_file = False
+            else:
+                fmt_chunk_size = int.from_bytes(data[4:], byteorder="little", signed=False)
+                fmt_chunk = audio.read(fmt_chunk_size)
+                remaining_size -= fmt_chunk_size
 
-    return audio_file
+                # Verify that the format is PCM
+                if int.from_bytes(fmt_chunk[:2], byteorder="little", signed=False) != 1:
+                    valid_file = False
+                
+                # If the format is PCM, we continue and read the rest of the format subchunk
+                else:
+                    audio_file.num_channels = int.from_bytes(fmt_chunk[2:4], byteorder="little", signed=False)                    
+                    audio_file.sample_rate = int.from_bytes(fmt_chunk[4:8], byteorder="little", signed=False)
+                    audio_file.byte_rate = int.from_bytes(fmt_chunk[8:12], byteorder="little", signed=False)
+                    audio_file.block_align = int.from_bytes(fmt_chunk[12:14], byteorder="little", signed=False)
+                    audio_file.bits_per_sample = int.from_bytes(fmt_chunk[14:16], byteorder="little", signed=False)
+                    audio_file.bytes_per_sample = audio_file.bits_per_sample // 8
+
+        # Now that the file has been read, we continue to read the remaining subchunks
+        if valid_file:
+            while remaining_size > 0:
+                subchunk_header = audio.read(CHUNK_HEADER_SIZE)
+                remaining_size -= CHUNK_HEADER_SIZE
+                subchunk_size = int.from_bytes(subchunk_header[4:8], byteorder="little", signed=False)
+                subchunk_data = audio.read(subchunk_size)
+                remaining_size -= subchunk_size
+
+                # Detect if we've read a data subchunk
+                if subchunk_header[:4] == DATA_CHUNK_1:
+                    audio_file.num_frames = subchunk_size // (audio_file.num_channels * audio_file.bytes_per_sample)
+                    audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.int32)
+                    for i in range(0, subchunk_size, audio_file.block_align):
+                        j = i // audio_file.block_align
+                        for k in range(0, audio_file.num_channels):
+                            audio_file.samples[k, j] = int.from_bytes(
+                                subchunk_data[i + k * audio_file.num_channels : i + k * audio_file.num_channels + audio_file.bytes_per_sample],
+                                byteorder="little",
+                                signed=True
+                            )        
+
+    if valid_file:
+        return audio_file
+    else:
+        raise RuntimeWarning("The WAV file was improperly formatted and could not be read.")
 
 
 def write_wav(file: AudioFile, path: str):
@@ -104,11 +142,11 @@ def write_wav(file: AudioFile, path: str):
             for j in range(file.num_channels):
                 audio.write(int(file.samples[j, i] * file.scaling_factor).to_bytes(file.bytes_per_sample, byteorder="little", signed=True))
 
-def scale_wav(wav_data):
+
+def scale_wav(file: AudioFile):
     """
-    Scales a provided NumPy array with wavfile data
-    :param wav_data: A NumPy array
-    :return: The scaling denominator and a scaled array
+    Scales a provided AudioFile
+    :param file: An AudioFile
     """
-    scaler = np.max(wav_data)
-    return scaler, wav_data / scaler
+    file.scaling_factor = np.max(np.abs(file.samples))
+    file.samples = file.samples / file.scaling_factor

@@ -35,26 +35,27 @@ with open(file_name1, "rb") as audio_file:
     junk2 = audio_file.read()
     print(len(data) // block_size)
 
+
     # for i in range(0, num_bytes):
     #     current = int.from_bytes(data[i:i+block_size], byteorder="little", signed=True)
     #     if current == b[0] // 256:
     #         print(f"Match: {i}")        
 
-    for i in range(0, len(data), block_size):
-        j = i // block_size
+    # for i in range(0, len(data), block_size):
+    #     j = i // block_size
 
-        current_block = data[i:i+block_size]
-        current_b = b[j]
-        current = int.from_bytes(current_block, byteorder="little", signed=True)
+    #     current_block = data[i:i+block_size]
+    #     current_b = b[j]
+    #     current = int.from_bytes(current_block, byteorder="little", signed=True)
         
-        if current == current_b // 256:
-            # print(f"Match: {j}")
-            pass
-        else:
-            print(f"{j} Found bytes {current_block}, converted as {current}, scipy has {current_b}")
+    #     if current == current_b // 256:
+    #         # print(f"Match: {j}")
+    #         pass
+    #     else:
+    #         print(f"{j} Found bytes {current_block}, converted as {current}, scipy has {current_b}")
 
-    print(f"The length of junk1 is {len(junk1)} and the length of junk2 is {len(junk2)}")
-    print(junk1)
-    print(junk2)
+    # print(f"The length of junk1 is {len(junk1)} and the length of junk2 is {len(junk2)}")
+    # print(junk1)
+    # print(junk2)
 
 # print(int(b'a'))
