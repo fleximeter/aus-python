@@ -9,6 +9,7 @@ This file contains functionality for processing audio files for use with sampler
 import numpy as np
 from wav import AudioFile
 
+
 def identify_amplitude_regions(audio: AudioFile, level_delimiter: int = 0.01, num_consecutive: int = 10, channel_index: int = 0) -> list:
     """
     Identifies amplitude regions in a sound. You provide a threshold, and any time the threshold is
@@ -44,15 +45,18 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: int = 0.01, nu
 
 def detect_peaks(audio: AudioFile, channel_index: int = 0) -> list:
     """
-    Detects peaks in an audio file. Peaks are identified by being surrounded by lower absolute values to either side.
+    Detects peaks in an audio file.
     :param audio: An AudioFile object with the contents of a WAV file
     :param channel_index: The index of the channel to scan for peaks
     :return: Returns a list of indices; each index corresponds to a frame with a peak in the selected channel.
     """
     peaks = []
     for i in range(1, audio.num_frames - 1):
-        if np.abs(audio.samples[channel_index, i-1]) < np.abs(audio.samples[channel_index, i]) \
-            > np.abs(audio.samples[channel_index, i+1]):
+        if audio.samples[channel_index, i-1] < audio.samples[channel_index, i] > audio.samples[channel_index, i+1] \
+            and audio.samples[channel_index, i] > 0:
+            peaks.append(i)
+        elif audio.samples[channel_index, i-1] > audio.samples[channel_index, i] < audio.samples[channel_index, i+1] \
+            and audio.samples[channel_index, i] < 0:
             peaks.append(i)
     return peaks
 
@@ -69,6 +73,34 @@ def fit_amplitude_envelope(audio: AudioFile, chunk_width: int = 5000, channel_in
     """
     envelope = []
     for i in range(0, audio.num_frames, chunk_width):
-        peak_idx = np.argmax(audio.samples[channel_index, i:i+chunk_width])
-        envelope.append((i + peak_idx, audio.samples[channel_index, i + peak_idx]))
+        peak_idx = np.argmax(np.abs(audio.samples[channel_index, i:i+chunk_width]))
+        envelope.append((i + peak_idx, np.abs(audio.samples[channel_index, i + peak_idx])))
     return envelope
+
+
+def detect_major_peaks(audio: AudioFile, max_difference_ratio: float = 0.1, chunk_width: int = 5000, channel_index: int = 0) -> list:
+    """
+    Detects major peaks in an audio file. A major peak is a peak that is one of the highest in its local region.
+    The local region is specified by the chunk width. We segment the audio file into segments of width chunk_width,
+    and search for the highest peak in that chunk. Then we identify all other peaks that are close in height
+    to the max peak. A peak is close in height to the max peak if it is within max_difference_ratio of that peak.
+    :param audio: An AudioFile object with the contents of a WAV file
+    :param max_difference_ratio: We detect the max peak in a range, and eliminate all peaks that are not within this fraction of that peak.
+    :param chunk_width: The width of the chunk to search for the highest peak
+    :param channel_index: The index of the channel to scan for peaks
+    :return: Returns a list of tuples; the tuple has an index and an amplitude value.
+    """
+    peaks = []
+    for i in range(1, audio.num_frames, chunk_width - 1):
+        peak_idx = i + np.argmax(np.abs(audio.samples[channel_index, i:i+chunk_width]))
+        peak_val = np.abs(audio.samples[channel_index, peak_idx])
+        for j in range(i, i + chunk_width):
+            if audio.samples[channel_index, i-1] < audio.samples[channel_index, i] > audio.samples[channel_index, i+1] \
+                and audio.samples[channel_index, i] > 0:
+                if np.abs((peak_val - np.abs(audio.samples[channel_index, j])) / peak_val) <= max_difference_ratio:
+                    peaks.append((j, audio.samples[channel_index, j]))
+            elif audio.samples[channel_index, i-1] > audio.samples[channel_index, i] < audio.samples[channel_index, i+1] \
+                and audio.samples[channel_index, i] < 0:
+                if np.abs((peak_val - np.abs(audio.samples[channel_index, j])) / peak_val) <= max_difference_ratio:
+                    peaks.append((j, audio.samples[channel_index, j]))
+    return peaks
