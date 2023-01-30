@@ -79,8 +79,8 @@ def read_wav(file_name) -> AudioFile:
                 remaining_size -= fmt_chunk_size
 
                 # Verify that the format is valid. We only support formats 1 and 3 at the moment (PCM and float).
-                audio_file.format = int.from_bytes(fmt_chunk[:2], byteorder="little", signed=False)
-                if audio_file.format != 1 and audio_file.format != 3:
+                audio_file.audio_format = int.from_bytes(fmt_chunk[:2], byteorder="little", signed=False)
+                if audio_file.audio_format != 1 and audio_file.audio_format != 3:
                     valid_file = False
                 
                 # If the format is PCM, we continue and read the rest of the format subchunk
@@ -107,18 +107,8 @@ def read_wav(file_name) -> AudioFile:
                 if subchunk_header[:4] == DATA_CHUNK_1:
                     audio_file.num_frames = subchunk_size // (audio_file.num_channels * audio_file.bytes_per_sample)
 
-                    # This is for 32-bit float format
-                    if audio_file.format == 3:
-                        audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.float32)
-                        for i in range(0, subchunk_size, audio_file.block_align):
-                            j = i // audio_file.block_align
-                            for k in range(0, audio_file.num_channels):
-                                audio_file.samples[k, j] = struct.unpack('f',
-                                    subchunk_data[i + k * audio_file.num_channels : i + k * audio_file.num_channels + audio_file.bytes_per_sample]
-                                )[0]
-
                     # This is for 8, 16, and 24-bit fixed (int) format
-                    elif audio_file.format == 1:
+                    if audio_file.audio_format == 1:
                         audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.int32)
                         for i in range(0, subchunk_size, audio_file.block_align):
                             j = i // audio_file.block_align
@@ -128,6 +118,27 @@ def read_wav(file_name) -> AudioFile:
                                     byteorder="little",
                                     signed=True
                                 )
+
+                    # This is for 32-bit float format
+                    elif audio_file.audio_format == 3 and audio_file.bits_per_sample == 32:
+                        audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.float32)
+                        for i in range(0, subchunk_size, audio_file.block_align):
+                            j = i // audio_file.block_align
+                            for k in range(0, audio_file.num_channels):
+                                audio_file.samples[k, j] = struct.unpack('f',
+                                    subchunk_data[i + k * audio_file.num_channels : i + k * audio_file.num_channels + audio_file.bytes_per_sample]
+                                )[0]
+
+                    # This is for 64-bit float format
+                    elif audio_file.audio_format == 3 and audio_file.bits_per_sample == 64:
+                        audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.float64)
+                        for i in range(0, subchunk_size, audio_file.block_align):
+                            j = i // audio_file.block_align
+                            for k in range(0, audio_file.num_channels):
+                                audio_file.samples[k, j] = struct.unpack('d',
+                                    subchunk_data[i + k * audio_file.num_channels : i + k * audio_file.num_channels + audio_file.bytes_per_sample]
+                                )[0]
+
                     audio_file.duration = audio_file.num_frames / audio_file.sample_rate
 
     # If the WAV file was formatted unusually (for example, not in PCM or float), we return nothing
@@ -160,6 +171,7 @@ def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
     :return: None
     """
     with open(path, "wb") as audio:
+        # Write the header
         header = b"".join([
             b"RIFF",
             (36 + file.num_frames * file.num_channels * (file.bits_per_sample // 8)).to_bytes(LARGE_FIELD, byteorder="little", signed=False),
@@ -175,13 +187,12 @@ def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
         ])
         audio.write(header)
 
-        # Note that this needs to be overhauled later - there is actually some data in the
-        # junk chunk. You have to figure out what it is.
+        # Write the junk chunk if we are including it
         if write_junk_chunk:
             junk_header = b"".join([
-                b"JUNK",
-                int(28).to_bytes(LARGE_FIELD, byteorder="little", signed=False),
-                b"............................"
+                b"JUNK",  # junk id
+                int(28).to_bytes(LARGE_FIELD, byteorder="little", signed=False),  # subchunk size of junk
+                int(0).to_bytes(28, byteorder="little", signed=False)  # contents of junk
             ])
             audio.write(junk_header)
 
@@ -199,10 +210,16 @@ def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
                     audio.write(int(file.samples[j, i] * file.scaling_factor).to_bytes(file.bytes_per_sample, byteorder="little", signed=True))
         
         # Write float data
-        elif file.audio_format == 3:
+        elif file.audio_format == 3 and file.bits_per_sample == 32:
             for i in range(file.num_frames):
                 for j in range(file.num_channels):
                     audio.write(struct.pack('f', file.samples[j, i]))
+        
+        # Write double data
+        elif file.audio_format == 3 and file.bits_per_sample == 64:
+            for i in range(file.num_frames):
+                for j in range(file.num_channels):
+                    audio.write(struct.pack('d', file.samples[j, i]))
 
 
 def scale_wav(file: AudioFile):
