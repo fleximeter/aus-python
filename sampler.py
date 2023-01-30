@@ -105,3 +105,40 @@ def detect_major_peaks(audio: AudioFile, max_difference_ratio: float = 0.1, chun
             j += 1
 
     return peaks
+
+
+def detect_loop_points(audio: AudioFile, channel_index: int = 0, min_frame_width: int = 10000) -> list:
+    """
+    Detects loop points in an audio sample. Loop points are frame indices that could be used for
+    a seamless repeating loop in a sampler. Ideally, if you choose loop points correctly, no crossfading
+    would be needed within the loop.
+    We have several requirements for a good loop:
+    1. The standard deviation of peak amplitudes should be minimized (i.e. the loop is not increasing or decreasing in amplitude)
+    2. The distance between successive wave major peaks should be consistent
+    3. The frames at which looping begins and ends should have values as close to 0 as possible
+    :param audio: An AudioFile object
+    :param channel_index: The index of the channel to scan for loops (you really should use mono audio 
+    with a sampler)
+    :param min_frame_width: The minimum width of the loop in frames
+    :return: A list of tuples that are start and ending frames for looping
+    """
+    MAX_FRAME_WIDTH = 44100
+    MAX_STDEV = 1
+    major_peaks = detect_major_peaks(audio, 0.1, 5000, channel_index)
+    frame_tuples = []
+
+    for i in range(audio.num_frames - min_frame_width):
+        # If we've found a good start point
+        if audio.samples[channel_index, i] == 0:
+            # Take a big chunk and begin to pare it back
+            chunk = audio.samples[channel_index, i:i+MAX_FRAME_WIDTH]
+            
+            # Get the major peaks associated with this chunk
+            major_peaks_in_chunk = []
+            for j in range(len(major_peaks)):
+                if i <= major_peaks[j][0] < i + MAX_FRAME_WIDTH:
+                    major_peaks_in_chunk.append(major_peaks[j])
+                elif major_peaks[j][0] > i + MAX_FRAME_WIDTH:
+                    break
+            
+            

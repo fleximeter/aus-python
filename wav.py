@@ -19,6 +19,7 @@ class AudioFile:
         self.block_align = 0
         self.byte_rate = 0
         self.bytes_per_sample = 0
+        self.duration = 0
         self.num_channels = 0
         self.num_frames = 0
         self.sample_rate = 0
@@ -108,7 +109,8 @@ def read_wav(file_name) -> AudioFile:
                                 subchunk_data[i + k * audio_file.num_channels : i + k * audio_file.num_channels + audio_file.bytes_per_sample],
                                 byteorder="little",
                                 signed=True
-                            )        
+                            )
+                    audio_file.duration = audio_file.num_frames / audio_file.sample_rate
 
     # If the WAV file was formatted unusually (for example, not in PCM), we return nothing
     # and raise a warning.
