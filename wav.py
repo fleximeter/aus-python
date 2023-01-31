@@ -10,6 +10,7 @@ https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html (for audio 
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 import struct
 
 LARGE_FIELD = 4
@@ -148,6 +149,22 @@ def read_wav(file_name) -> AudioFile:
     else:
         raise RuntimeWarning("The WAV file was unusually formatted and could not be read. This might be because you tried to read a WAV file that was not in PCM format.")
 
+
+def visualize_wav(file: AudioFile, channel_index: int = 0):
+    """
+    Visualizes a WAV file.
+    :param file: An AudioFile object
+    :param channel_index: The channel to visualize
+    """
+    x = [i for i in range(file.num_frames)]
+    y = file.samples[channel_index, :]
+    fig, ax = plt.subplots()
+    ax.set_xlabel("Frame Index")
+    ax.set_ylabel("Amplitude")
+    ax.set_title("WAV File Visualization")
+    ax.plot(x, y)
+    plt.show()
+    
 
 def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
     """
