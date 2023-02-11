@@ -3,7 +3,12 @@ File: wav.py
 Author: Jeff Martin
 Date: 1/25/23
 
-This is a no-nonsense WAV file reader. References: 
+This is a no-nonsense RIFF WAV file reader, writer, etc. It supports fixed (int) files up to
+32-bit, and float files up to 64-bit. If you are crazy enough to think you need something 
+better, you can easily modify this code to support 128-bit and higher. There is also basic
+functionality for plotting and scaling WAV files. 
+
+References: 
 https://ccrma.stanford.edu/courses/422-winter-2014/projects/WaveFormat/ (for the canonical WAV format)
 https://www.sounddevices.com/32-bit-float-files-explained/ (for 32-bit float files)
 https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html (for audio format specification other than 1 - PCM)
@@ -18,7 +23,13 @@ SMALL_FIELD = 2
 
 
 class AudioFile:
+    """
+    A representation of a RIFF WAV audio file
+    """
     def __init__(self):
+        """
+        Creates a new AudioFile
+        """
         self.audio_format = 1
         self.bits_per_sample = 0
         self.block_align = 0
@@ -45,6 +56,12 @@ def read_wav(file_name) -> AudioFile:
     absolute value of every sample by 8 bytes, inflating the amplitude. This implementation does
     not do that. Furthermore, it records the bit depth of the file so that you can actually write
     in 24-bit format.
+
+    This implementation ignores all information in JUNK chunks, and assumes that there will be
+    only one DATA chunk in the file. If for some reason you have multiple data chunks, only the
+    contents of the last one will be preserved.
+
+    Finally, at this time, this implementation can only read RIFF, not RF64, WAV files.
 
     :param file_name: The name of the file
     :return: An AudioFile object with the contents of the WAV file
@@ -157,25 +174,36 @@ def read_wav(file_name) -> AudioFile:
         raise RuntimeWarning("The WAV file was unusually formatted and could not be read. This might be because you tried to read a WAV file that was not in PCM format.")
 
 
-def visualize_wav(file: AudioFile, channels=None):
+def visualize_wav(file: AudioFile, channels=None, frames=None):
     """
     Visualizes a WAV file using matplotlib. This visualizer can only visualize one channel
     at a time.
     :param file: An AudioFile object
     :param channels: The channels to visualize, as a list or tuple. If None, will visualize
     all channels.
+    :param frames: A list or tuple containing a range of frames to visualize. If None, will
+    visualize all frames.
     """
     if channels is None:
         channels = [i for i in range(file.num_channels)]
-    x = [i for i in range(file.num_frames)]
-    ys = [file.samples[i, :] for i in channels]
+    
+    # Get the frames to visualize
+    if frames is None:
+        ys = [file.samples[i, :] for i in channels]
+        x = [i for i in range(file.num_frames)]
+    else:
+        ys = [file.samples[i, frames[0]:frames[1]] for i in channels]
+        x = [i for i in range(frames[0], frames[1])]
+    
     fig, axs = plt.subplots(nrows=len(channels), ncols=1)
     fig.suptitle(f"WAV File Visualization for {file.file_name}")
+    
     for i in range(len(channels)):
         axs[i].set_xlabel("Frame Index")
         axs[i].set_ylabel("Amplitude")
         axs[i].set_title(f"Channel {channels[i] + 1}")
         axs[i].plot(x, ys[i])
+    
     fig.tight_layout()
     plt.show()
     
@@ -193,12 +221,16 @@ def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
     - num_frames
     - sample_rate
     - scaling_factor
+
+    You can specify to write a JUNK chunk (of size 36) if you wish. Since the header will be
+    44 bytes, this makes the total size of header + JUNK to be 80 bytes. Note that the JUNK 
+    chunk is traditionally used in CD audio for alignment, but more recently it is written 
+    to allow recording without specifying RIFF or RF64 format; this can be specified later,
+    after recording. RF64 allows for larger WAV files than RIFF.
     
     :param file: An AudioFile representation of the file
     :param path: A file path
-    :param write_junk_chunk: Whether or not to write the junk chunk. Note that the JUNK chunk is traditionally used in CD audio
-    for alignment, but more recently it is written to allow recording without specifying RIFF or RF64 format; this can be specified
-    later, after recording. RF64 allows for larger WAV files than RIFF.
+    :param write_junk_chunk: Whether or not to write the junk chunk. 
     :return: None
     """
     with open(path, "wb") as audio:
@@ -238,7 +270,7 @@ def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
         if file.audio_format == 1:
             for i in range(file.num_frames):
                 for j in range(file.num_channels):
-                    audio.write(int(file.samples[j, i] * file.scaling_factor).to_bytes(file.bytes_per_sample, byteorder="little", signed=True))
+                    audio.write(int(round(file.samples[j, i] * file.scaling_factor, None)).to_bytes(file.bytes_per_sample, byteorder="little", signed=True))
         
         # Write float data
         elif file.audio_format == 3 and file.bits_per_sample == 32:
