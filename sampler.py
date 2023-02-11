@@ -78,36 +78,53 @@ def fit_amplitude_envelope(audio: AudioFile, chunk_width: int = 5000, channel_in
     return envelope
 
 
-def detect_major_peaks(audio: AudioFile, max_difference_ratio: float = 0.1, chunk_width: int = 5000, channel_index: int = 0) -> list:
+def detect_major_peaks(audio: AudioFile, min_percentage_of_max: float = 0.9, chunk_width: int = 5000, channel_index: int = 0) -> list:
     """
     Detects major peaks in an audio file. A major peak is a peak that is one of the highest in its local region.
+    
     The local region is specified by the chunk width. We segment the audio file into segments of width chunk_width,
     and search for the highest peak in that chunk. Then we identify all other peaks that are close in height
-    to the max peak. A peak is close in height to the max peak if it is within max_difference_ratio of that peak.
+    to the highest peak. A peak is close in height to said peak if it is greater than or equal to min_percentage_of_max
+    of that peak. (For example, suppose the highest peak is 1, and the min_percentage_of_max is 0.9. Then any peak with
+    amplitude from 0.9 to 1 will be considered a major peak.)
+    
     :param audio: An AudioFile object with the contents of a WAV file
-    :param max_difference_ratio: We detect the max peak in a range, and eliminate all peaks that are not within this fraction of that peak.
+    :param min_percentage_of_max: A peak must be at least this percentage of the maximum peak to be included as a major
+    peak.
     :param chunk_width: The width of the chunk to search for the highest peak
     :param channel_index: The index of the channel to scan for peaks
     :return: Returns a list of tuples; the tuple has an index and an amplitude value.
     """
     peaks = []
     for i in range(1, audio.num_frames - 1, chunk_width):
+        # Get the index and absolute value of the highest peak in the current chunk
         peak_idx = i + np.argmax(np.abs(audio.samples[channel_index, i:i+chunk_width]))
         peak_val = np.abs(audio.samples[channel_index, peak_idx])
+        
         print(peak_idx, peak_val)
 
+        # Iterate through the current chunk and find all major peaks
         j = i
         while j < i + chunk_width and j < audio.num_frames - 1:
-            if ((audio.samples[channel_index, j-1] < audio.samples[channel_index, j] > audio.samples[channel_index, j+1] and audio.samples[channel_index, j] > 0) \
-                or (audio.samples[channel_index, j-1] > audio.samples[channel_index, j] < audio.samples[channel_index, j+1] and audio.samples[channel_index, j] < 0)) \
-                and np.abs((peak_val - np.abs(audio.samples[channel_index, j])) / peak_val) <= max_difference_ratio:
+            if (
+                # If the current sample is a positive peak (both neighboring samples are lower)
+                ((audio.samples[channel_index, j-1] < audio.samples[channel_index, j] > audio.samples[channel_index, j+1] \
+                    and audio.samples[channel_index, j] > 0) \
+                
+                # Or the sample is a negative peak (both neighboring samples are higher)
+                or (audio.samples[channel_index, j-1] > audio.samples[channel_index, j] < audio.samples[channel_index, j+1] \
+                    and audio.samples[channel_index, j] < 0)) \
+                
+                # And the peak is a major peak
+                and np.abs(audio.samples[channel_index, j]) >= peak_val * min_percentage_of_max
+            ):
                 peaks.append((j, audio.samples[channel_index, j]))
             j += 1
 
     return peaks
 
 
-def detect_loop_points(audio: AudioFile, channel_index: int = 0, min_frame_width: int = 10000) -> list:
+def detect_loop_points(audio: AudioFile, channel_index: int = 0, min_periods: int = 5) -> list:
     """
     Detects loop points in an audio sample. Loop points are frame indices that could be used for
     a seamless repeating loop in a sampler. Ideally, if you choose loop points correctly, no crossfading
@@ -119,26 +136,45 @@ def detect_loop_points(audio: AudioFile, channel_index: int = 0, min_frame_width
     :param audio: An AudioFile object
     :param channel_index: The index of the channel to scan for loops (you really should use mono audio 
     with a sampler)
-    :param min_frame_width: The minimum width of the loop in frames
+    :param min_periods: The minimum number of periods to include from the waveform
     :return: A list of tuples that are start and ending frames for looping
     """
-    MAX_FRAME_WIDTH = 44100
-    MAX_STDEV = 1
-    major_peaks = detect_major_peaks(audio, 0.1, 5000, channel_index)
+    MIN_RATIO = 0.9
+
+    # The major peaks in the sound file.
+    major_peaks = detect_major_peaks(audio, 0.9, 5000, channel_index)
+    
+    # This stores frame tuples that identify potential loop points.
     frame_tuples = []
 
-    for i in range(audio.num_frames - min_frame_width):
-        # If we've found a good start point
-        if audio.samples[channel_index, i] == 0:
-            # Take a big chunk and begin to pare it back
-            chunk = audio.samples[channel_index, i:i+MAX_FRAME_WIDTH]
+    for i in range(len(major_peaks)):
+        potential_loop_peaks = [major_peaks[i]]
+        max_peak = np.abs(potential_loop_peaks[0][1])
+        min_peak = np.abs(potential_loop_peaks[0][1])
+    
+        # We start by grabbing the minimum number of periods necessary.
+        for j in range(i, i + min_periods - 1):
+            potential_loop_peaks.append(major_peaks[j])
+            peak_abs = np.abs(major_peaks[j][1])
+            if peak_abs > max_peak:
+                max_peak = peak_abs
+            elif peak_abs < min_peak:
+                min_peak = peak_abs
+        
+        # Start counting up, and verify eligibility each time.
+        for j in range(i + min_periods - 1, len(major_peaks)):
+            potential_loop_peaks.append(major_peaks[j])
+            peak_abs = np.abs(major_peaks[j][1])
+            if peak_abs > max_peak:
+                max_peak = peak_abs
+            elif peak_abs < min_peak:
+                min_peak = peak_abs
             
-            # Get the major peaks associated with this chunk
-            major_peaks_in_chunk = []
-            for j in range(len(major_peaks)):
-                if i <= major_peaks[j][0] < i + MAX_FRAME_WIDTH:
-                    major_peaks_in_chunk.append(major_peaks[j])
-                elif major_peaks[j][0] > i + MAX_FRAME_WIDTH:
-                    break
-            
-            
+            if min_peak >= max_peak * MIN_RATIO:
+                pass
+            else:
+                break
+
+
+def _determine_loop_points(audio: AudioFile, initial_loop_points, channel_index: int = 0):
+    pass
