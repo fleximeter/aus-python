@@ -10,19 +10,23 @@ file_name3 = "D:\\Desktop\\sample32.wav"
 file_name4 = "C:\\Users\jeff_martin\Desktop\sample24.wav"
 file_name5 = "C:\\Users\jeff_martin\Desktop\sample32.wav"
 
-b_rate, b = read(file_name3)
+b_rate, b = read(file_name4)
 print(f"Sample rate: {b_rate}, number of frames: {len(b)}")
-a = wav.read_wav(file_name3)
+a = wav.read_wav(file_name4)
 
+print(b.shape)
 print(len(b), a.num_frames)
 print(a.bits_per_sample)
 
-for i in range(100):
-    if b[i, 0] == a.samples[0, i]:
+print(b[100, 0], a.samples[0, 100])
+for i in range(10):
+    if b[i, 1] == a.samples[1, i] * 256:
         pass
         #print(f"Match {i}")
     else:
-        print(f"No match for sample index {i}: {b[i]} {a.samples[0, i]}")
+        print(f"No match for sample index {i}: {b[i, 1]} {a.samples[1, i]}")
+
+# wav.visualize_wav(a, 1)
 # scaler, b_scaled = wav.scale_wav(b)
 
 # wav.write_wav(a, "C:\\Users\\jeff_martin\\Desktop\\temp.wav", True)

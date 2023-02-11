@@ -4,7 +4,8 @@ import sampler
 import wav
 
 file_name = "D:\\Recording\\ReaperProjects\\trombone_samples\\samples\\trombone_sample_mute_9-19-22_a45_f.wav"
-a = wav.read_wav(file_name)
+file_name1 = "C:\\Users\\jeff_martin\\Desktop\\sample32.wav"
+a = wav.read_wav(file_name1)
 
 env_amp = sampler.fit_amplitude_envelope(a, 500, 0)
 peaks = sampler.detect_peaks(a, 0)
