@@ -25,6 +25,7 @@ class AudioFile:
         self.byte_rate = 0
         self.bytes_per_sample = 0
         self.duration = 0
+        self.file_name = ""
         self.num_channels = 0
         self.num_frames = 0
         self.sample_rate = 0
@@ -35,14 +36,16 @@ class AudioFile:
 def read_wav(file_name) -> AudioFile:
     """
     Reads a WAV file and returns an AudioFile object with the data. Currently this implementation
-    supports reading 16-bit and 24-bit WAV files, and should support any sample rate. 32-bit float
-    files are not yet supported.
+    supports reading fixed (int) files up to 32-bit and float files up to 64-bit. Larger files could
+    be supported, but who would actually need to use them?
+
     The advantage of this implementation over the SciPy wavfile functionality is that it preserves
     more information so that you can reconstruct the original WAV file more accurately. For example,
     SciPy (at the time of writing) stores 24-bit samples in np.int32 format *but* left-shifts the
     absolute value of every sample by 8 bytes, inflating the amplitude. This implementation does
     not do that. Furthermore, it records the bit depth of the file so that you can actually write
-    in 24-bit format. 
+    in 24-bit format.
+
     :param file_name: The name of the file
     :return: An AudioFile object with the contents of the WAV file
     """
@@ -58,6 +61,7 @@ def read_wav(file_name) -> AudioFile:
         DATA_CHUNK_1 = b'data'
         remaining_size = 0
         chunk_riff = audio.read(RIFF_CHUNK_SIZE)
+        audio_file.file_name = file_name
         
         # We use this to validate the file as we go. If we encounter corrupt data, we will flip this to False.
         valid_file = True
@@ -107,38 +111,41 @@ def read_wav(file_name) -> AudioFile:
                 # (e.g. a JUNK subchunk), we ignore it.
                 if subchunk_header[:4] == DATA_CHUNK_1:
                     audio_file.num_frames = subchunk_size // (audio_file.num_channels * audio_file.bytes_per_sample)
+                    j = 0  # frame index
 
-                    # This is for 8, 16, and 24-bit fixed (int) format
-                    if audio_file.audio_format == 1:
-                        audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.int32)
+                    # This is for 8-, 16-, 24-, and 32-bit fixed (int) format. Theoretically we could support 64-bit
+                    # int, but who would want to use it?
+                    if audio_file.audio_format == 1 and audio_file.bits_per_sample <= 32:
+                        audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.int32)                        
                         for i in range(0, subchunk_size, audio_file.block_align):
-                            j = i // audio_file.block_align
                             for k in range(0, audio_file.num_channels):
                                 audio_file.samples[k, j] = int.from_bytes(
-                                    subchunk_data[i + k * audio_file.num_channels : i + k * audio_file.num_channels + audio_file.bytes_per_sample],
+                                    subchunk_data[i + k * audio_file.bytes_per_sample : i + k * audio_file.bytes_per_sample + audio_file.bytes_per_sample],
                                     byteorder="little",
                                     signed=True
                                 )
+                            j += 1  # move to next frame
 
-                    # This is for 32-bit float format
+                    # This is for 32-bit float format.
                     elif audio_file.audio_format == 3 and audio_file.bits_per_sample == 32:
                         audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.float32)
                         for i in range(0, subchunk_size, audio_file.block_align):
-                            j = i // audio_file.block_align
                             for k in range(0, audio_file.num_channels):
                                 audio_file.samples[k, j] = struct.unpack('f',
-                                    subchunk_data[i + k * audio_file.num_channels : i + k * audio_file.num_channels + audio_file.bytes_per_sample]
+                                    subchunk_data[i + k * audio_file.bytes_per_sample : i + k * audio_file.bytes_per_sample + audio_file.bytes_per_sample]
                                 )[0]
+                            j += 1  # move to next frame
 
-                    # This is for 64-bit float format
+                    # This is for 64-bit float format. Theoretically we could also support 128-bit, but who would be
+                    # crazy enough to want to use it?
                     elif audio_file.audio_format == 3 and audio_file.bits_per_sample == 64:
                         audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.float64)
                         for i in range(0, subchunk_size, audio_file.block_align):
-                            j = i // audio_file.block_align
                             for k in range(0, audio_file.num_channels):
                                 audio_file.samples[k, j] = struct.unpack('d',
-                                    subchunk_data[i + k * audio_file.num_channels : i + k * audio_file.num_channels + audio_file.bytes_per_sample]
+                                    subchunk_data[i + k * audio_file.bytes_per_sample : i + k * audio_file.bytes_per_sample + audio_file.bytes_per_sample]
                                 )[0]
+                            j += 1  # move to next frame
 
                     audio_file.duration = audio_file.num_frames / audio_file.sample_rate
 
@@ -150,19 +157,26 @@ def read_wav(file_name) -> AudioFile:
         raise RuntimeWarning("The WAV file was unusually formatted and could not be read. This might be because you tried to read a WAV file that was not in PCM format.")
 
 
-def visualize_wav(file: AudioFile, channel_index: int = 0):
+def visualize_wav(file: AudioFile, channels=None):
     """
-    Visualizes a WAV file.
+    Visualizes a WAV file using matplotlib. This visualizer can only visualize one channel
+    at a time.
     :param file: An AudioFile object
-    :param channel_index: The channel to visualize
+    :param channels: The channels to visualize, as a list or tuple. If None, will visualize
+    all channels.
     """
+    if channels is None:
+        channels = [i for i in range(file.num_channels)]
     x = [i for i in range(file.num_frames)]
-    y = file.samples[channel_index, :]
-    fig, ax = plt.subplots()
-    ax.set_xlabel("Frame Index")
-    ax.set_ylabel("Amplitude")
-    ax.set_title("WAV File Visualization")
-    ax.plot(x, y)
+    ys = [file.samples[i, :] for i in channels]
+    fig, axs = plt.subplots(nrows=len(channels), ncols=1)
+    fig.suptitle(f"WAV File Visualization for {file.file_name}")
+    for i in range(len(channels)):
+        axs[i].set_xlabel("Frame Index")
+        axs[i].set_ylabel("Amplitude")
+        axs[i].set_title(f"Channel {channels[i] + 1}")
+        axs[i].plot(x, ys[i])
+    fig.tight_layout()
     plt.show()
     
 

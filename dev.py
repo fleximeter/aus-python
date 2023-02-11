@@ -10,9 +10,9 @@ file_name3 = "D:\\Desktop\\sample32.wav"
 file_name4 = "C:\\Users\jeff_martin\Desktop\sample24.wav"
 file_name5 = "C:\\Users\jeff_martin\Desktop\sample32.wav"
 
-b_rate, b = read(file_name4)
+b_rate, b = read(file_name3)
 print(f"Sample rate: {b_rate}, number of frames: {len(b)}")
-a = wav.read_wav(file_name4)
+a = wav.read_wav(file_name3)
 
 print(b.shape)
 print(len(b), a.num_frames)
@@ -26,10 +26,10 @@ for i in range(10):
     else:
         print(f"No match for sample index {i}: {b[i, 1]} {a.samples[1, i]}")
 
-# wav.visualize_wav(a, 1)
+wav.visualize_wav(a)
 # scaler, b_scaled = wav.scale_wav(b)
 
-# wav.write_wav(a, "C:\\Users\\jeff_martin\\Desktop\\temp.wav", True)
+wav.write_wav(a, "D:\\Desktop\\temp.wav", True)
 
 # regions = sampler.identify_amplitude_regions(b_scaled, 0.001, 1000, 0)
 # print(regions)
