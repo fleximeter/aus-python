@@ -186,6 +186,8 @@ def visualize_wav(file: AudioFile, channels=None, frames=None):
     """
     if channels is None:
         channels = [i for i in range(file.num_channels)]
+    if type(channels) == int:
+        channels = [channels]
     
     # Get the frames to visualize
     if frames is None:
@@ -198,11 +200,17 @@ def visualize_wav(file: AudioFile, channels=None, frames=None):
     fig, axs = plt.subplots(nrows=len(channels), ncols=1)
     fig.suptitle(f"WAV File Visualization for {file.file_name}")
     
-    for i in range(len(channels)):
-        axs[i].set_xlabel("Frame Index")
-        axs[i].set_ylabel("Amplitude")
-        axs[i].set_title(f"Channel {channels[i] + 1}")
-        axs[i].plot(x, ys[i])
+    if len(channels) > 1:
+        for i in range(len(channels)):
+            axs[i].set_xlabel("Frame Index")
+            axs[i].set_ylabel("Amplitude")
+            axs[i].set_title(f"Channel {channels[i] + 1}")
+            axs[i].plot(x, ys[i])
+    else:
+        axs.set_xlabel("Frame Index")
+        axs.set_ylabel("Amplitude")
+        axs.set_title(f"Channel 1")
+        axs.plot(x, ys[0])
     
     fig.tight_layout()
     plt.show()
