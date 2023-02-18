@@ -12,7 +12,7 @@ file_name5 = "C:\\Users\jeff_martin\Desktop\sample32.wav"
 
 a = wav.read_wav(file_name)
 
-points = sampler.detect_loop_points(a, 0, 4)
+points = sampler.detect_loop_points(a, 0, 500)
 print(len(points))
 
-# wav.visualize_wav(a, 0, [10000, 11000])
+wav.visualize_wav(a, 0, points[0])
