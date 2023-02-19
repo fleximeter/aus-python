@@ -13,6 +13,8 @@ import os
 
 dir = "D:\\Recording\\ReaperProjects\\trombone_samples\\samples\\batch_norm_m"
 files = os.listdir(dir)
+
+# This contains the detected loops. Keys are file names and values are the loop point tuple.
 loops = {}
 
 for file in files:
