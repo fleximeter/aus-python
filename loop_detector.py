@@ -18,7 +18,7 @@ files = os.listdir(dir)
 loops = {}
 
 for file in files:
-    print(file)
+    # print(file)
     num_points = 100
     audio = wav.read_wav(f"{dir}\\{file}")
     points = sampler.detect_loop_points(audio, 0, num_points)
@@ -31,4 +31,5 @@ for file in files:
     if points:
         loops[file] = points[0]
 
-print(loops)
+for loop in loops:
+    print(loop, loops[loop])
