@@ -142,7 +142,6 @@ def detect_loop_points(audio: AudioFile, channel_index: int = 0, num_periods: in
         or type(audio.samples[0, 0]) == np.int32 \
         or type(audio.samples[0, 0]) == np.int64: 
         effective_zero = int(effective_zero * 2 ** (audio.bits_per_sample - 1))
-    print(effective_zero)
 
     # The major peaks in the sound file.
     major_peaks = detect_major_peaks(audio, 0.9, 5000, channel_index)
