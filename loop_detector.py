@@ -7,27 +7,31 @@ This file uses the sampler functionality from audiopython to detect loop points
 in all files contained within a directory.
 """
 
-import sampler
-import wav
+import audiopython.sampler
+import audiopython.wav
 import os
 
-dir = "D:\\Recording\\ReaperProjects\\trombone_samples\\samples\\batch_norm_m"
-files = os.listdir(dir)
+# set the directory here, and the number of periods for the loop length you want
+directory = "D:\\Recording\\ReaperProjects\\trombone_samples\\samples\\batch_norm_m"
+num_periods = 100
+
+# you don't need to change anything below here
+files = os.listdir(directory)
 
 # This contains the detected loops. Keys are file names and values are the loop point tuple.
 loops = {}
 
 for file in files:
     # print(file)
-    num_points = 100
-    audio = wav.read_wav(f"{dir}\\{file}")
-    points = sampler.detect_loop_points(audio, 0, num_points)
+    num_periods1 = num_periods
+    audio = audiopython.wav.read_wav(f"{directory}\\{file}")
+    points = audiopython.sampler.detect_loop_points(audio, 0, num_periods1)
 
     # if no loop points were discovered, decrease the number of periods
     # and try again
-    while not points and num_points > 50:
-        num_points -= 1
-        points = sampler.detect_loop_points(audio, 0, num_points)
+    while not points and num_periods1 > 50:
+        num_periods1 -= 1
+        points = audiopython.sampler.detect_loop_points(audio, 0, num_periods1)
     if points:
         loops[file] = points[0]
 
