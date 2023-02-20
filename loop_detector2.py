@@ -1,3 +1,12 @@
+"""
+File: loop_detector2.py
+Author: Jeff Martin
+Date: 2/19/23
+
+This file uses the sampler functionality from audiopython to detect loop points
+in all files contained within a directory.
+"""
+
 import audiopython.sampler
 import audiopython.wav
 import os
@@ -30,10 +39,18 @@ for file in files:
             maxloops = len(points)
 
 df = pandas.DataFrame()
-df.insert(0, "file_name")
+df.insert(0, "file_name", [])
 for i in range(maxloops):
-    df.insert(i+1, f"loop_{i+1}")
+    df.insert(2 * i + 1, f"loop_{i+1}_start", [])
+    df.insert(2 * i + 2, f"loop_{i+1}_end", [])
+    
 for loop in loops:
-    df.loc[len(df.index)] = [loop] + [val for val in loops[loop]]
+    looplist = [loop]
+    for val in loops[loop]:
+        looplist.append(val[0])
+        looplist.append(val[1])
+    df.loc[len(df.index)] = looplist
 
-print(df)
+df.to_excel("loops.xlsx")
+
+print("Done. Output to loops.xlsx")
