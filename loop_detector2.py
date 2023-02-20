@@ -22,7 +22,6 @@ files = os.listdir(directory)
 loops = {}
 
 maxloops = 0
-
 for file in files:
     num_periods1 = num_periods
     audio = audiopython.wav.read_wav(f"{directory}\\{file}")
@@ -43,12 +42,14 @@ df.insert(0, "file_name", [])
 for i in range(maxloops):
     df.insert(2 * i + 1, f"loop_{i+1}_start", [])
     df.insert(2 * i + 2, f"loop_{i+1}_end", [])
-    
+
 for loop in loops:
     looplist = [loop]
     for val in loops[loop]:
         looplist.append(val[0])
         looplist.append(val[1])
+    for i in range(len(looplist), maxloops * 2 + 1):
+        looplist.append(None)
     df.loc[len(df.index)] = looplist
 
 df.to_excel("loops.xlsx")
