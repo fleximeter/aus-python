@@ -21,6 +21,11 @@ file_name10 = "C:\\Users\jeff_martin\Desktop\sample32.aif"
 
 a = audiofile.read_wav(file_name2)
 
+audiofile.convert(a, "int16")
+
+
+# audiofile.write_aiff(b, "D:\\Desktop\\temp.aiff")
+
 # x = a.samples[0, 16384:16384+4096]
 # print(x.shape)
 

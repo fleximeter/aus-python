@@ -226,7 +226,7 @@ def read_wav(file_name) -> AudioFile:
                 audio_file.audio_format = int.from_bytes(fmt_chunk[:2], byteorder="little", signed=False)
                 if audio_file.audio_format != 1 and audio_file.audio_format != 3:
                     valid_file = False
-                
+                    
                 # If the format is PCM, we continue and read the rest of the format subchunk
                 else:
                     audio_file.num_channels = int.from_bytes(fmt_chunk[2:4], byteorder="little", signed=False)                    
@@ -296,7 +296,7 @@ def read_wav(file_name) -> AudioFile:
         raise RuntimeWarning("The WAV file was unusually formatted and could not be read. This might be because you tried to read a WAV file that was not in PCM format.")
 
 
-def visualize_wav(file: AudioFile, channels=None, frames=None):
+def visualize_audio_file(file: AudioFile, channels=None, frames=None):
     """
     Visualizes a WAV file using matplotlib. This visualizer can only visualize one channel
     at a time.
@@ -414,6 +414,61 @@ def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
                 for j in range(file.num_channels):
                     audio.write(struct.pack('d', file.samples[j, i]))
 
+        else:
+            raise Exception(message="Invalid audio format.")
+
+
+def write_aiff(file: AudioFile, path: str):
+    """
+    Writes an audio file. Note that the audio_format must match the format used! For example,
+    you cannot specify an audio_format of 3 (float) and use PCM (int32) data in the samples.
+
+    Also, note that in the AudioFile, the following parameters should be properly set (other
+    parameters will not be consulted when building the WAV file):
+    - audio_format (1 for PCM, 3 for float)
+    - bits_per_sample
+    - num_channels
+    - num_frames
+    - sample_rate
+    - scaling_factor
+    
+    :param file: An AudioFile representation of the file
+    :param path: A file path
+    :return: None
+    """
+    audio_size = file.num_channels * file.num_frames * (file.bits_per_sample // 8)
+    with open(path, "wb") as audio:
+        # Write the header
+        header = b"".join([
+            b"FORM",
+            (4 + 26 + 16 + audio_size).to_bytes(LARGE_FIELD, byteorder="big", signed=False),
+            b"AIFF",
+            b"COMM",
+            int(18).to_bytes(LARGE_FIELD, byteorder="big", signed=False),  # common chunk size
+            file.num_channels.to_bytes(SMALL_FIELD, byteorder="big", signed=False),  # num channels
+            file.num_frames.to_bytes(LARGE_FIELD, byteorder="big", signed=False),  # num frames
+            file.bits_per_sample.to_bytes(SMALL_FIELD, byteorder="big", signed=False),  # bits per sample
+            _pack_float80(file.sample_rate)
+        ])
+        audio.write(header)
+
+        # Write the data header
+        data_header = b"".join([
+            b"SSND",
+            (8 + audio_size).to_bytes(LARGE_FIELD, byteorder="big", signed=False),
+            b'\x00\x00\x00\x00\x00\x00\x00\x00'
+        ])
+        audio.write(data_header)
+
+        # Write PCM data
+        if file.audio_format == 1:
+            for i in range(file.num_frames):
+                for j in range(file.num_channels):
+                    audio.write(int(round(file.samples[j, i] * file.scaling_factor, None)).to_bytes(file.bits_per_sample // 8, byteorder="big", signed=True))
+        
+        else:
+            raise Exception(message="Invalid audio format. AIFF only supports PCM fixed (int) format (1).")
+
 
 def scale_audio_file(file: AudioFile):
     """
@@ -422,3 +477,45 @@ def scale_audio_file(file: AudioFile):
     """
     file.scaling_factor = np.max(np.abs(file.samples))
     file.samples = file.samples / file.scaling_factor
+
+
+def convert(file: AudioFile, format: str):
+    """
+    Converts an AudioFile from one sample format to another. Use this to change between
+    int and float format, or to change bit depth (e.g. 16 to 24 bit).
+    :param file: An AudioFile
+    :param format: The destination format"""
+    max_possible_amp = 0
+    
+    if file.audio_format == 1:
+        max_possible_amp = (2 ** file.bits_per_sample) // 2 - 1
+    elif file.audio_format == 3:
+        pass
+    else:
+        raise Exception(message="Invalid audio format.")
+
+    max_actual_amp = np.max(np.abs(file.samples))
+    max_amp_ratio = max_actual_amp / max_possible_amp
+
+    if "int" in format:
+        format_bits = int(format[3:])
+        format_ratio = file.bits_per_sample / format_bits
+        if format_bits <= 16:
+            new_dtype = np.int16
+        else:
+            new_dtype = np.int32
+        
+        # This is a simple conversion
+        if file.audio_format == 1:
+            new_arr = np.zeros(file.samples.shape, dtype=new_dtype)
+            np.floor_divide(file.samples, format_ratio, file.samples, dtype=file.samples.dtype)
+            file.samples = new_arr
+            print(file.samples.dtype)
+
+        print(format_ratio)
+
+    elif "float" in format:
+        format_bits = int(format[5:])
+        format_ratio = format_bits / file.bits_per_sample
+        print(format_ratio)
+
