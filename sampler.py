@@ -7,7 +7,7 @@ This file contains functionality for processing audio files for use with sampler
 """
 
 import numpy as np
-from wav import AudioFile, visualize_wav
+from audiofile import AudioFile, visualize_wav
 
 
 def identify_amplitude_regions(audio: AudioFile, level_delimiter: int = 0.01, num_consecutive: int = 10, channel_index: int = 0) -> list:

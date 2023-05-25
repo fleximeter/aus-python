@@ -8,7 +8,7 @@ This file contains functionality for spectral analysis.
 
 import scipy.fft
 import numpy as np
-from wav import AudioFile
+from audiofile import AudioFile
 
 def fft(file: AudioFile, channel: int = 0, frames=None, window_size: int = 1024):
     """

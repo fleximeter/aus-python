@@ -1,21 +1,25 @@
 """
-File: wav.py
+File: audiofile.py
 Author: Jeff Martin
 Date: 1/25/23
 
-This is a no-nonsense RIFF WAV file reader, writer, etc. It supports fixed (int) files up to
-32-bit, and float files up to 64-bit. If you are crazy enough to think you need something 
-better, you can easily modify this code to support 128-bit and higher. There is also basic
-functionality for plotting and scaling WAV files. 
+This is a no-nonsense audio file reader, writer, etc. It supports fixed (int) files up to
+32-bit and float files up to 64-bit (for WAV), and fixed (int) files up to 32-bit (for AIFF).
+Note that float format is not supported for AIFF. If you are crazy enough to think you need 
+something bigger than 32/64-bit (hint: you do not), you can easily modify this code to support 
+128-bit and higher. There is also basic functionality for plotting and scaling audio files. 
 
 References: 
 https://ccrma.stanford.edu/courses/422-winter-2014/projects/WaveFormat/ (for the canonical WAV format)
 https://www.sounddevices.com/32-bit-float-files-explained/ (for 32-bit float files)
 https://www.mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html (for audio format specification other than 1 - PCM)
+http://paulbourke.net/dataformats/audio/ (AIFF)
+http://midi.teragonaudio.com/tech/aiff.htm (AIFF)
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 import struct
 
 LARGE_FIELD = 4
@@ -42,6 +46,124 @@ class AudioFile:
         self.sample_rate = 0
         self.samples = None
         self.scaling_factor = 1
+
+
+def _unpack_float80(bytes):
+    """
+    A hack to get the sample rate from a float 80 number. Since Python doesn't really have
+    native support for the float80 format, we have to be creative. We take advantage of the
+    fact that the sample rate will always be a whole number, and discard the decimal part.
+    :param bytes: Some bytes representing a float 80 number
+    :return: An integer with the whole number part
+    """
+    chunk1 = int.from_bytes(bytes[:2], byteorder="big", signed=False)
+    # sign = chunk1 >> 15  # extract the sign bit (this is unnecessary because sample rates are never negative)
+    exponent = (chunk1 << 1) >> 1  # get rid of the sign bit
+    exponent -= 16383  # 2 ** 14 - 1 (the sign part is two's complement)
+    num_bytes = math.ceil(exponent/8) + 1
+    int_part = int.from_bytes(bytes[2:2+num_bytes], byteorder="big", signed=False)
+    int_part >>= num_bytes * 8 - exponent - 1
+    return int_part
+    
+
+def _pack_float80(num):
+    """
+    Packs a sample rate to float 80 format.
+    :param num: An integer to convert
+    :return: The packed format
+    """
+    exp = math.ceil(math.log2(num)) - 1
+    exp_part = (exp + 16383).to_bytes(2, byteorder="big", signed=False)
+    mantissa = num << (32 - exp - 1)
+    mantissa = mantissa.to_bytes(length=4, byteorder="big", signed=False)
+    return exp_part + mantissa + b'\x00\x00\x00\x00'
+
+
+def read_aiff(file_name) -> AudioFile:
+    """
+    Reads an AIFF file and returns an AudioFile object with the data. Currently this implementation
+    supports reading fixed (int) files up to 64-bit. Larger files could be supported, but who would 
+    actually need to use them?
+
+    :param file_name: The name of the file
+    :return: An AudioFile object with the contents of the AIFF file
+    """
+    audio_file = AudioFile()
+    audio_file.audio_format = 1
+    
+    with open(file_name, "rb") as audio:
+        HEADER1 = b'FORM'
+        HEADER2 = b'AIFF'
+        HEADER3 = b'COMM'
+        HEADER4 = b'SSND'
+        
+        # We use this to validate the file as we go. If we encounter corrupt data, we will flip this to False.
+        valid_file = True
+        eof = False
+
+        while not eof:
+            chunk_title = audio.read(4)
+            if len(chunk_title) < LARGE_FIELD:
+                eof = True
+            
+            # read the form chunk
+            elif chunk_title == HEADER1:
+                file_size = audio.read(LARGE_FIELD)
+                file_size = int.from_bytes(file_size, byteorder="big", signed=False)
+                label = audio.read(LARGE_FIELD)
+
+                # We can't read files that are in a weird format
+                if label != HEADER2:
+                    valid_file = False
+            
+            # read the common chunk
+            elif chunk_title == HEADER3:
+                chunk_size = audio.read(LARGE_FIELD)
+                chunk_size = int.from_bytes(chunk_size, byteorder="big", signed=False)
+                common_chunk = audio.read(chunk_size)
+                audio_file.num_channels = int.from_bytes(common_chunk[:2], byteorder="big", signed=False) # number of channels
+                audio_file.num_frames = int.from_bytes(common_chunk[2:6], byteorder="big", signed=False) # number of frames
+                audio_file.bits_per_sample = int.from_bytes(common_chunk[6:8], byteorder="big", signed=False) # sample size (bits)
+                audio_file.bytes_per_sample = audio_file.bits_per_sample // 8
+                audio_file.sample_rate = _unpack_float80(common_chunk[8:])
+                audio_file.byte_rate = audio_file.sample_rate * audio_file.num_channels * audio_file.bytes_per_sample
+                audio_file.block_align = audio_file.num_channels * audio_file.bytes_per_sample
+                
+            # read the samples
+            elif chunk_title == HEADER4:
+                sound_chunk_size = audio.read(LARGE_FIELD)
+                sound_chunk_size = int.from_bytes(sound_chunk_size, byteorder="big", signed=False)
+                
+                # Read the offset and block size, which will probably be 0
+                offset = audio.read(LARGE_FIELD)
+                # offset = int.from_bytes(offset, byteorder="big", signed=False)
+                block_size = audio.read(LARGE_FIELD)
+                # block_size = int.from_bytes(block_size, byteorder="big", signed=False)
+                
+                # Read the rest of the file
+                data = audio.read()
+                if audio_file.bits_per_sample <= 16:
+                    audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.int16)
+                elif audio_file.bits_per_sample <= 32:
+                    audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.int32)
+                else:
+                    audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.int64)
+                
+                frame_size = audio_file.bytes_per_sample * audio_file.num_channels
+                k = 0
+                for i in range(0, len(data), frame_size):
+                    for j in range(0, audio_file.num_channels):
+                        start_point = i + j * audio_file.bytes_per_sample
+                        audio_file.samples[j, k] = int.from_bytes(data[start_point:start_point+audio_file.bytes_per_sample], byteorder="big", signed=True)
+                    k += 1
+
+                audio_file.duration = audio_file.num_frames / audio_file.sample_rate
+
+    # If the AIFF file was formatted unusually, we return nothing and raise a warning.
+    if valid_file:
+        return audio_file
+    else:
+        raise RuntimeWarning("The AIFF file was unusually formatted and could not be read.")
 
 
 def read_wav(file_name) -> AudioFile:
@@ -293,7 +415,7 @@ def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
                     audio.write(struct.pack('d', file.samples[j, i]))
 
 
-def scale_wav(file: AudioFile):
+def scale_audio_file(file: AudioFile):
     """
     Scales a provided AudioFile
     :param file: An AudioFile
