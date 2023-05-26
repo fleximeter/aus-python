@@ -79,7 +79,74 @@ def _pack_float80(num):
     return exp_part + mantissa + b'\x00\x00\x00\x00'
 
 
-def read_aiff(file_name) -> AudioFile:
+def convert(file: AudioFile, format: str):
+    """
+    Converts an AudioFile from one sample format to another. Use this to change between
+    int and float format, or to change bit depth (e.g. 16 to 24 bit).
+    Supported conversion types: 'int16', 'int24', 'int32', 'float32', 'float64'
+    :param file: An AudioFile
+    :param format: The destination format
+    """
+    
+    # Converts to intxx format
+    if "int" in format:
+        format_bits = int(format[3:])
+        if format_bits <= 16:
+            new_dtype = np.int16
+        else:
+            new_dtype = np.int32
+        
+        if file.audio_format == 1:
+            format_ratio = format_bits / file.bits_per_sample
+            float_arr = file.samples * format_ratio
+            float_arr = float_arr.round(decimals=0)
+            file.samples = float_arr.astype(new_dtype)
+
+        elif file.audio_format == 3:
+            float_arr = file.samples * ((2 ** format_bits) / 2 - 1)
+            float_arr = float_arr.round(decimals=0)
+            file.samples = float_arr.astype(new_dtype)
+
+        file.audio_format = 1
+        file.bits_per_sample = format_bits
+        file.bytes_per_sample = format_bits // 8
+
+    # Converts to float32 or float64 format
+    elif "float" in format:
+        format_bits = int(format[5:])
+        format_ratio = format_bits / file.bits_per_sample
+        
+        if format_bits == 32:
+            new_dtype = np.float32
+        else:
+            new_dtype = np.float64
+        
+        if file.audio_format == 1:
+            float_arr = np.divide(file.samples, ((2 ** file.bits_per_sample) / 2 - 1), None, dtype=new_dtype)
+            file.samples = float_arr
+
+        elif file.audio_format == 3:
+            file.samples = file.samples.astype(new_dtype)
+
+        file.audio_format = 3
+        file.bits_per_sample = format_bits
+        file.bytes_per_sample = format_bits // 8
+
+
+def convert_directory(directory_name: str, format: str, recurse: bool = True):
+    """
+    Converts all WAV and AIFF files within a directory (and its subdirectories, if recurse=True)
+    to the specified format. Outputs the results to a new directory with mirrored directory structure.
+
+    :param directory_name: The directory name
+    :param format: The destination format (supported formats are 'int16', 'int24', 'int32', 'float32',
+    and 'float64')
+    :param recurse: Whether or not to recurse and convert all subdirectories as well
+    """
+    pass
+
+
+def read_aiff(file_name: str) -> AudioFile:
     """
     Reads an AIFF file and returns an AudioFile object with the data. Currently this implementation
     supports reading fixed (int) files up to 64-bit. Larger files could be supported, but who would 
@@ -166,7 +233,7 @@ def read_aiff(file_name) -> AudioFile:
         raise RuntimeWarning("The AIFF file was unusually formatted and could not be read.")
 
 
-def read_wav(file_name) -> AudioFile:
+def read_wav(file_name: str) -> AudioFile:
     """
     Reads a WAV file and returns an AudioFile object with the data. Currently this implementation
     supports reading fixed (int) files up to 32-bit and float files up to 64-bit. Larger files could
@@ -468,54 +535,3 @@ def write_aiff(file: AudioFile, path: str):
         
         else:
             raise Exception(message="Invalid audio format. AIFF only supports PCM fixed (int) format (1).")
-
-
-def scale_audio_file(file: AudioFile):
-    """
-    Scales a provided AudioFile
-    :param file: An AudioFile
-    """
-    file.scaling_factor = np.max(np.abs(file.samples))
-    file.samples = file.samples / file.scaling_factor
-
-
-def convert(file: AudioFile, format: str):
-    """
-    Converts an AudioFile from one sample format to another. Use this to change between
-    int and float format, or to change bit depth (e.g. 16 to 24 bit).
-    :param file: An AudioFile
-    :param format: The destination format"""
-    max_possible_amp = 0
-    
-    if file.audio_format == 1:
-        max_possible_amp = (2 ** file.bits_per_sample) // 2 - 1
-    elif file.audio_format == 3:
-        pass
-    else:
-        raise Exception(message="Invalid audio format.")
-
-    max_actual_amp = np.max(np.abs(file.samples))
-    max_amp_ratio = max_actual_amp / max_possible_amp
-
-    if "int" in format:
-        format_bits = int(format[3:])
-        format_ratio = file.bits_per_sample / format_bits
-        if format_bits <= 16:
-            new_dtype = np.int16
-        else:
-            new_dtype = np.int32
-        
-        # This is a simple conversion
-        if file.audio_format == 1:
-            new_arr = np.zeros(file.samples.shape, dtype=new_dtype)
-            np.floor_divide(file.samples, format_ratio, file.samples, dtype=file.samples.dtype)
-            file.samples = new_arr
-            print(file.samples.dtype)
-
-        print(format_ratio)
-
-    elif "float" in format:
-        format_bits = int(format[5:])
-        format_ratio = format_bits / file.bits_per_sample
-        print(format_ratio)
-
