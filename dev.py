@@ -19,12 +19,14 @@ file_name8 = "D:\\Desktop\\sample32.aif"
 file_name9 = "C:\\Users\jeff_martin\Desktop\sample24.aif"
 file_name10 = "C:\\Users\jeff_martin\Desktop\sample32.aif"
 
-a = audiofile.read_wav(file_name2)
-b = audiofile.read_wav(file_name3)
+# a = audiofile.read_wav(file_name2)
+# b = audiofile.read_wav(file_name3)
 
-audiofile.convert(a, "float32")
-audiofile.convert(a, "int24")
-audiofile.write_wav(a, "D:\\Desktop\\temp.wav")
+# audiofile.convert(a, "float32")
+# audiofile.convert(a, "int24")
+# audiofile.write_wav(a, "D:\\Desktop\\temp.wav")
+
+print(audiofile.find_files("D:\\Recording\\Samples\\pianobook"))
 
 
 # audiofile.write_aiff(b, "D:\\Desktop\\temp.aiff")

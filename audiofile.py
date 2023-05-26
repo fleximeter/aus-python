@@ -21,6 +21,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import struct
+import os
+import re
 
 LARGE_FIELD = 4
 SMALL_FIELD = 2
@@ -45,10 +47,9 @@ class AudioFile:
         self.num_frames = 0
         self.sample_rate = 0
         self.samples = None
-        self.scaling_factor = 1
 
 
-def _unpack_float80(bytes):
+def _unpack_float80(bytes) -> int:
     """
     A hack to get the sample rate from a float 80 number. Since Python doesn't really have
     native support for the float80 format, we have to be creative. We take advantage of the
@@ -66,7 +67,7 @@ def _unpack_float80(bytes):
     return int_part
     
 
-def _pack_float80(num):
+def _pack_float80(num: int):
     """
     Packs a sample rate to float 80 format.
     :param num: An integer to convert
@@ -144,6 +145,27 @@ def convert_directory(directory_name: str, format: str, recurse: bool = True):
     :param recurse: Whether or not to recurse and convert all subdirectories as well
     """
     pass
+
+
+def find_files(directory_name: str) -> list:
+    """
+    Finds all WAV and AIFF files within a directory (and its subdirectories, if recurse=True)
+
+    :param directory_name: The directory name
+    :param format: The destination format (supported formats are 'int16', 'int24', 'int32', 'float32',
+    and 'float64')
+    :return: A list of file names
+    """
+    files_audio = []
+    search = re.compile(r"(\.wav$)|(\.aif$)|(\.aiff$)")
+
+    for path, subdirectories, files in os.walk(directory_name):
+        for name in files:
+            result = search.search(name)
+            if result:
+                files_audio.append(os.path.join(path, name))
+
+    return files_audio
 
 
 def read_aiff(file_name: str) -> AudioFile:
