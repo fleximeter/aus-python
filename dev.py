@@ -27,9 +27,10 @@ a = audiofile.read_wav(yamaha_map[54][0])
 # plt.plot(sf, np.abs(s))
 # plt.show()
 
-b = spectrum.fft_range(a, 0, (0, 32768))
+b = spectrum.fft_range(a, 0, window_size=4096)
 print(b.shape)
-spectrum.plot_fft_data(b, a, 1024)
+amps, phases = spectrum.fft_data_decompose(b)
+spectrum.plot_fft_data(amps, a, 4096)
 
 # a = audiofile.read_wav(file_name2)
 # b = audiofile.read_wav(file_name3)
