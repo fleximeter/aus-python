@@ -27,6 +27,8 @@ import re
 LARGE_FIELD = 4
 SMALL_FIELD = 2
 
+letter_map = {'A': 69, 'B': 71, 'C': 60, 'D': 62, 'E': 64, 'F': 65, 'G': 67}
+
 
 class AudioFile:
     """
@@ -166,6 +168,27 @@ def find_files(directory_name: str) -> list:
                 files_audio.append(os.path.join(path, name))
 
     return files_audio
+
+
+def load_yamaha():
+    dir = "D:\\Recording\\Samples\\pianobook\\YamahaC7\\YamahaC7\\Samples"
+    files = find_files(dir)
+    midi_map = {}
+    letter = re.compile(r"^[A-Za-z]")
+    sharp = re.compile(r"^[A-Za-z]#")
+    number = re.compile(r"[0-9](?=_)")
+    for file in files:
+        file_name = os.path.split(file)[1]
+        base_midi = letter_map[letter.search(file_name).group(0)]
+        if sharp.search(file_name):
+            base_midi += 1
+        octave = int(number.search(file_name).group(0)) - 4
+        base_midi += 12 * octave
+        if base_midi not in midi_map:
+            midi_map[base_midi] = [file]
+        else:
+            midi_map[base_midi].append(file)
+    return midi_map
 
 
 def read_aiff(file_name: str) -> AudioFile:
