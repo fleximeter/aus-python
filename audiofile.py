@@ -512,7 +512,7 @@ def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
         if file.audio_format == 1:
             for i in range(file.num_frames):
                 for j in range(file.num_channels):
-                    audio.write(int(round(file.samples[j, i] * file.scaling_factor, None)).to_bytes(file.bytes_per_sample, byteorder="little", signed=True))
+                    audio.write(int(file.samples[j, i]).to_bytes(file.bytes_per_sample, byteorder="little", signed=True))
         
         # Write float data
         elif file.audio_format == 3 and file.bits_per_sample == 32:
@@ -576,7 +576,7 @@ def write_aiff(file: AudioFile, path: str):
         if file.audio_format == 1:
             for i in range(file.num_frames):
                 for j in range(file.num_channels):
-                    audio.write(int(round(file.samples[j, i] * file.scaling_factor, None)).to_bytes(file.bits_per_sample // 8, byteorder="big", signed=True))
+                    audio.write(int(round(file.samples[j, i], None)).to_bytes(file.bits_per_sample // 8, byteorder="big", signed=True))
         
         else:
             raise Exception(message="Invalid audio format. AIFF only supports PCM fixed (int) format (1).")
