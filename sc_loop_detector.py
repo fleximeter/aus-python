@@ -13,9 +13,8 @@ import audiofile
 import multiprocessing as mp
 import sampler
 
-PATH = "D:\\Recording\\Samples\\pianobook"
+PATH = "D:\\Recording\\Samples\\pianobook\\YamahaC7\\YamahaC7\\Samples"
 CPU_COUNT = mp.cpu_count()
-
 
 def make_loops(audio_files, queue):
     """
@@ -34,6 +33,7 @@ def make_loops(audio_files, queue):
             num_periods -= 2
         data[file] = loop_points
 
+    print("Done")
     queue.put(data)
 
 
@@ -67,5 +67,5 @@ if __name__ == "__main__":
     for i in range(CPU_COUNT):
         processes[i].join()
         
-    for item in loop_data:
-        print(item, loop_data[item])
+    # for item in loop_data:
+    #     print(item, loop_data[item])

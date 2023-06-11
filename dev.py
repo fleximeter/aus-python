@@ -23,3 +23,8 @@ file_name10 = "C:\\Users\jeff_martin\Desktop\sample32.aif"
 # audiofile.convert(a, "float32")
 # audiofile.convert(a, "int24")
 # audiofile.write_wav(a, "D:\\Desktop\\temp.wav")
+
+f = "D:\\Recording\\Samples\\pianobook\\YamahaC7\\YamahaC7\\Samples\\C#4_T1D.wav"
+
+a = audiofile.read_wav(f)
+# audiofile.write_wav(a, "D:\\Desktop\\temp.wav")

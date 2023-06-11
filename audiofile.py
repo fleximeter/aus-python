@@ -336,33 +336,9 @@ def read_wav(file_name: str) -> AudioFile:
         # Validate the RIFF chunk before proceeding
         if chunk_riff[:4] != RIFF_CHUNK_1 or chunk_riff[8:] != RIFF_CHUNK_3:
             valid_file = False
+            print("BAD RIFF")
         else:
             remaining_size = int.from_bytes(chunk_riff[4:8], byteorder="little", signed=False)
-        
-        # Read the format subchunk
-        if valid_file:
-            data = audio.read(CHUNK_HEADER_SIZE)
-            remaining_size -= CHUNK_HEADER_SIZE
-            if data[:4] != FMT_CHUNK_1:
-                valid_file = False
-            else:
-                fmt_chunk_size = int.from_bytes(data[4:], byteorder="little", signed=False)
-                fmt_chunk = audio.read(fmt_chunk_size)
-                remaining_size -= fmt_chunk_size
-
-                # Verify that the format is valid. We only support formats 1 and 3 at the moment (PCM and float).
-                audio_file.audio_format = int.from_bytes(fmt_chunk[:2], byteorder="little", signed=False)
-                if audio_file.audio_format != 1 and audio_file.audio_format != 3:
-                    valid_file = False
-                    
-                # If the format is PCM, we continue and read the rest of the format subchunk
-                else:
-                    audio_file.num_channels = int.from_bytes(fmt_chunk[2:4], byteorder="little", signed=False)                    
-                    audio_file.sample_rate = int.from_bytes(fmt_chunk[4:8], byteorder="little", signed=False)
-                    audio_file.byte_rate = int.from_bytes(fmt_chunk[8:12], byteorder="little", signed=False)
-                    audio_file.block_align = int.from_bytes(fmt_chunk[12:14], byteorder="little", signed=False)
-                    audio_file.bits_per_sample = int.from_bytes(fmt_chunk[14:16], byteorder="little", signed=False)
-                    audio_file.bytes_per_sample = audio_file.bits_per_sample // 8
 
         # Now that the file has been read, we continue to read the remaining subchunks.
         # The only remaining subchunk we are interested in is the data subchunk.
@@ -374,10 +350,31 @@ def read_wav(file_name: str) -> AudioFile:
                 subchunk_data = audio.read(subchunk_size)
                 remaining_size -= subchunk_size
 
+                # If we've read the FMT chunk
+                if subchunk_header[:4] == FMT_CHUNK_1:
+                    # Verify that the format is valid. We only support formats 1 and 3 at the moment (PCM and float).
+                    audio_file.audio_format = int.from_bytes(subchunk_data[:2], byteorder="little", signed=False)
+                    if audio_file.audio_format != 1 and audio_file.audio_format != 3:
+                        valid_file = False
+                        print(f"Bad audio format: {audio_file.audio_format}")
+                        
+                    # If the format is PCM, we continue and read the rest of the format subchunk
+                    else:
+                        audio_file.num_channels = int.from_bytes(subchunk_data[2:4], byteorder="little", signed=False)                    
+                        audio_file.sample_rate = int.from_bytes(subchunk_data[4:8], byteorder="little", signed=False)
+                        audio_file.byte_rate = int.from_bytes(subchunk_data[8:12], byteorder="little", signed=False)
+                        audio_file.block_align = int.from_bytes(subchunk_data[12:14], byteorder="little", signed=False)
+                        audio_file.bits_per_sample = int.from_bytes(subchunk_data[14:16], byteorder="little", signed=False)
+                        audio_file.bytes_per_sample = audio_file.bits_per_sample // 8
+
                 # Detect if we've read a data subchunk. If this is something else
                 # (e.g. a JUNK subchunk), we ignore it.
-                if subchunk_header[:4] == DATA_CHUNK_1:
+                elif subchunk_header[:4] == DATA_CHUNK_1:
                     audio_file.num_frames = subchunk_size // (audio_file.num_channels * audio_file.bytes_per_sample)
+                    
+                    # This adjustment is necessary because I've encountered a file that has a subchunk size
+                    # 1 byte too big.
+                    subchunk_size = min(subchunk_size, audio_file.num_frames * audio_file.block_align)
                     j = 0  # frame index
 
                     # This is for 8-, 16-, 24-, and 32-bit fixed (int) format. Theoretically we could support 64-bit
