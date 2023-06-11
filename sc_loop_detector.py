@@ -10,6 +10,7 @@ and the loop points.
 """
 
 import audiofile
+import json
 import multiprocessing as mp
 import sampler
 
@@ -23,7 +24,6 @@ def make_loops(audio_files, queue):
     """
     MIN_PERIODS = 2  # The minimum number of periods to allow for a set of loop points to be valid
     data = {}
-
     for file in audio_files:
         af = audiofile.read(file)
         num_periods = 20
@@ -31,13 +31,12 @@ def make_loops(audio_files, queue):
         while len(loop_points) < 1 and num_periods >= MIN_PERIODS:
             loop_points = sampler.detect_loop_points(af, num_periods=num_periods, maximum_amplitude_variance=0.1)
             num_periods -= 2
-        data[file] = loop_points
-
-    print("Done")
+        data[file] = {"num_periods": num_periods + 2, "loop_points": loop_points}
     queue.put(data)
 
 
 if __name__ == "__main__":
+    print("Starting loop generator...")
     audio_files = audiofile.find_files(PATH)
     loop_data = {}
 
@@ -66,6 +65,23 @@ if __name__ == "__main__":
     # Collect the processes
     for i in range(CPU_COUNT):
         processes[i].join()
-        
-    # for item in loop_data:
-    #     print(item, loop_data[item])
+
+    with open("data.scd", "w") as scd_file:
+        scd_file.write(f"~data = Array.fill({len(loop_data)}, {'{Dictionary.new}'});\n")
+        i = 0
+        for key, item in loop_data.items():
+            file_name = f"\"{key}\"".replace("\\", "/")
+            scd_file.write(f"~data[{i}].put(\\file, {file_name});\n")
+            scd_file.write(f"~data[{i}].put(\\num_periods, {item['num_periods']});\n")
+            scd_file.write(f"~data[{i}].put([\n    ")
+            j = 1
+            for loop_points in item["loop_points"]:
+                scd_file.write(f"[{loop_points[0]}, {loop_points[1]}], ")
+                if not j % 8:
+                    scd_file.write("\n    ")
+                j += 1
+                
+            scd_file.write(f"]);\n")                
+            i += 1
+
+    print("Loop generator done.")
