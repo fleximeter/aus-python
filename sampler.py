@@ -133,11 +133,16 @@ def detect_loop_points(audio: AudioFile, channel_index: int = 0, num_periods: in
     :param channel_index: The index of the channel to scan for loops (you really should use mono audio 
     with a sampler)
     :param num_periods: The number of periods to include from the waveform
-    :param effective_zero: The threshold below which we just consider the amplitude to be 0.
+    :param effective_zero: The threshold below which we just consider the amplitude to be 0. This is assumed to be a 
+    floating-point value between 0 (no amplitude) and 1 (max amplitude). If your file is fixed format, this will be 
+    automatically scaled.
     :param maximum_amplitude_variance: The maximum percentage difference between the biggest and 
     smallest major peak in the loop
     :return: A list of tuples that are start and ending frames for looping
     """
+
+    # If we are dealing with a fixed (int) file, we need to adjust the effective zero because
+    # the samples are integers, not floating point values.
     if type(audio.samples[0, 0]) == np.int16 \
         or type(audio.samples[0, 0]) == np.int32 \
         or type(audio.samples[0, 0]) == np.int64: 

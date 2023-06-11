@@ -191,6 +191,22 @@ def load_yamaha():
     return midi_map
 
 
+def read(file_name: str) -> AudioFile:
+    """
+    Reads an audio file (AIFF or WAV) and returns an AudioFile object containing the contents of the
+    file. This is a wrapper that simply calls read_aiff or read_wav. It is useful if you are reading
+    in a lot of files and some are AIFF and some are WAV.
+    :param file_name: The name of the file
+    :return: An AudioFile
+    """
+    if re.search(r'(\.aif$)|(\.aiff$)', file_name):
+        return read_aiff(file_name)
+    elif re.search(r'\.wav$', file_name):
+        return read_wav(file_name)
+    else:
+        return None
+
+
 def read_aiff(file_name: str) -> AudioFile:
     """
     Reads an AIFF file and returns an AudioFile object with the data. Currently this implementation
@@ -275,7 +291,7 @@ def read_aiff(file_name: str) -> AudioFile:
     if valid_file:
         return audio_file
     else:
-        raise RuntimeWarning("The AIFF file was unusually formatted and could not be read.")
+        raise RuntimeWarning(f"The AIFF file {file_name} was unusually formatted and could not be read.")
 
 
 def read_wav(file_name: str) -> AudioFile:
@@ -405,7 +421,7 @@ def read_wav(file_name: str) -> AudioFile:
     if valid_file:
         return audio_file
     else:
-        raise RuntimeWarning("The WAV file was unusually formatted and could not be read. This might be because you tried to read a WAV file that was not in PCM format.")
+        raise RuntimeWarning(f"The WAV file {file_name} was unusually formatted and could not be read. This might be because you tried to read a WAV file that was not in PCM format.")
 
 
 def visualize_audio_file(file: AudioFile, channels=None, frames=None):
