@@ -10,14 +10,117 @@ import numpy as np
 from audiofile import AudioFile, visualize_audio_file
 
 
-def identify_amplitude_regions(audio: AudioFile, level_delimiter: int = 0.01, num_consecutive: int = 10, channel_index: int = 0) -> list:
+def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_include: int = 0, 
+                    post_frames_to_include: int = 0, pre_envelope_type="hanning", pre_envelope_frames: int = 20,
+                    post_envelope_type="hanning", post_envelope_frames: int = 20) -> list:
+    """
+    Extracts samples from an AudioFile
+    
+    :param audio: An AudioFile object
+    :param amplitude_regions: A list of amplitude regions from the identify_amplitude_regions function
+    :param pre_frames_to_include: If this is set to greater than 0, the sample will be extended backward
+    to include these additional frames. This is useful for ensuring a clean sample onset.
+    :param post_frames_to_include: If this is set to greater than 0, the sample will be extended forward
+    to include these additional frames. This is useful for ensuring a clean sample release.
+    :param pre_envelope_type: The envelope type to apply to the beginning of the sound, for a clean onset.
+    Supported envelope types are Bartlett, Blackman, Hamming, and Hanning.
+    :param pre_envelope_frames: The duration in frames of the pre envelope
+    :param post_envelope_type: The envelope type to apply to the end of the sound, for a clean release.
+    Supported envelope types are Bartlett, Blackman, Hamming, and Hanning.
+    :param post_envelope_frames: The duration in frames of the post envelope
+    :return: A list of AudioFile objects with the samples
+    """
+    samples = []
+
+    # Adjust the samples to include frames before and after
+    for i, region in enumerate(amplitude_regions):
+        amplitude_regions[i] = (
+            max(0, region[0] - pre_frames_to_include),
+            min(audio.num_frames - 1, region[1] + post_frames_to_include)
+        )
+    max_amplitude = np.max(np.abs(audio.samples))
+
+    # Create the samples
+    for sample in amplitude_regions:
+        new_audio_file = AudioFile(
+            audio_format=audio.audio_format,
+            bits_per_sample=audio.bits_per_sample,
+            block_align=audio.block_align,
+            byte_rate=audio.byte_rate,
+            bytes_per_sample=audio.bytes_per_sample,
+            duration=(sample[1] - sample[0] + 1) / audio.sample_rate,
+            num_channels=audio.num_channels,
+            num_frames=(sample[1] - sample[0] + 1),
+            sample_rate=audio.sample_rate
+        )
+        new_audio_file.samples = audio.samples[:, sample[0]:sample[1]+1]
+
+        # Get the windows
+        pre_envelope = None
+        if pre_envelope_type == "bartlett":
+            pre_envelope = np.bartlett(pre_envelope_frames * 2)[:pre_envelope_frames]
+            for i in range(pre_envelope_frames):
+                pre_envelope[i] *= max_amplitude
+        elif pre_envelope_type == "blackman":
+            pre_envelope = np.blackman(pre_envelope_frames * 2)[:pre_envelope_frames]
+            for i in range(pre_envelope_frames):
+                pre_envelope[i] *= max_amplitude
+        elif pre_envelope_type == "hanning":
+            pre_envelope = np.hanning(pre_envelope_frames * 2)[:pre_envelope_frames]
+            for i in range(pre_envelope_frames):
+                pre_envelope[i] *= max_amplitude
+        elif pre_envelope_type == "hamming":
+            pre_envelope = np.hamming(pre_envelope_frames * 2)[:pre_envelope_frames]
+            for i in range(pre_envelope_frames):
+                pre_envelope[i] *= max_amplitude
+        post_envelope = None
+        if post_envelope_type == "bartlett":
+            post_envelope = np.bartlett(post_envelope_frames * 2)[post_envelope_frames:]
+            for i in range(post_envelope_frames):
+                post_envelope[i] *= max_amplitude
+        elif post_envelope_type == "blackman":
+            post_envelope = np.blackman(post_envelope_frames * 2)[post_envelope_frames:]
+            for i in range(post_envelope_frames):
+                post_envelope[i] *= max_amplitude
+        elif post_envelope_type == "hanning":
+            post_envelope = np.hanning(post_envelope_frames * 2)[post_envelope_frames:]
+            for i in range(post_envelope_frames):
+                post_envelope[i] *= max_amplitude
+        elif post_envelope_type == "hamming":
+            post_envelope = np.hamming(post_envelope_frames * 2)[post_envelope_frames:]
+            for i in range(post_envelope_frames):
+                post_envelope[i] *= max_amplitude
+        
+        # Apply the windows
+        if pre_envelope:
+            for i in range(pre_envelope_frames):
+                for j in range(new_audio_file.num_channels):
+                    new_audio_file.samples[j, i] *= pre_envelope[i]
+        if post_envelope:
+            for i in range(post_envelope_frames):
+                for j in range(new_audio_file.num_channels):
+                    new_audio_file.samples[j, new_audio_file.num_frames - post_envelope_frames + i] *= post_envelope[i]
+
+        samples.append(new_audio_file)
+    
+    return samples
+
+
+def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = 0.01, scale_level_delimiter: bool = True, 
+                               num_consecutive: int = 10, channel_index: int = 0) -> list:
     """
     Identifies amplitude regions in a sound. You provide a threshold, and any time the threshold is
-    breached, we start a new amplitude region which ends when we return below the threshold.
-    :param audio: An AudioFile object with the contents of a WAV file
-    :param level_delimiter: The lowest level allowed in a region. You should probably scale levels to between
-    -1 and 1 before using this function.
-    :param num_consecutive: The number of consecutive samples below the threshold required to end a region
+    breached, we start a new amplitude region which ends when we return below the threshold. This is
+    useful for pulling out individual samples from a file that has multiple samples in it.
+
+    :param audio: An AudioFile object
+    :param level_delimiter: The lowest level allowed in a region. This will be scaled by the maximum amplitude
+    in the audio file channel that is being analyzed, unless that feature is turned off by the next parameter. 
+    :param scale_level_delimiter: Whether or not to scale the level delimiter by the maximum amplitude in
+    the audio file channel that is being analyzed
+    :param num_consecutive: The number of consecutive samples below the threshold required to end a region.
+    Note that these samples will not be included in the amplitude region; they will only be used to determine
+    if an amplitude region is ending.
     :param channel_index: The index of the channel in the AudioFile to study
     :return: A list of tuples. Each tuple contains the starting and ending frame index of an amplitude region.
     """
@@ -26,20 +129,30 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: int = 0.01, nu
     num_below_threshold = 0
     last_above_threshold = 0
 
-    for i in range(audio.num_frames):
-        if np.abs(audio.samples[channel_index, i]) >= level_delimiter:
-            last_above_threshold = i
-            num_below_threshold = 0
-            if current_region is None:
-                current_region = i
-        elif np.abs(audio.samples[channel_index, i]) < level_delimiter:
-            num_below_threshold += 1
-            if current_region is not None and num_below_threshold >= num_consecutive:
-                regions.append((current_region, last_above_threshold))
-                current_region = None
+    if audio.num_frames > 0:
+        # Scale the level delimiter by the maximum amplitude in the audio file
+        if scale_level_delimiter:
+            maxval = np.max(np.abs(audio.samples[channel_index, :]))
+            if audio.samples.dtype == np.int32:
+                level_delimiter = round(level_delimiter * maxval)
+            elif audio.samples.dtype == np.float32 or audio.samples.dtype == np.float64:
+                level_delimiter *= maxval
+        
+        for i in range(audio.num_frames):
+            if np.abs(audio.samples[channel_index, i]) >= level_delimiter:
+                last_above_threshold = i
+                num_below_threshold = 0
+                if current_region is None:
+                    current_region = i
+            else:
+                num_below_threshold += 1
+                if current_region is not None and num_below_threshold >= num_consecutive:
+                    regions.append((current_region, last_above_threshold))
+                    current_region = None
 
-    if current_region is not None:
-        regions.append((current_region, audio.num_frames - 1))
+        if current_region is not None:
+            regions.append((current_region, audio.num_frames - 1))
+
     return regions
 
 

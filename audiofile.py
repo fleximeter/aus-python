@@ -34,20 +34,20 @@ class AudioFile:
     """
     A representation of a RIFF WAV audio file
     """
-    def __init__(self):
+    def __init__(self, **kwargs):
         """
         Creates a new AudioFile
         """
-        self.audio_format = 1
-        self.bits_per_sample = 0
-        self.block_align = 0
-        self.byte_rate = 0
-        self.bytes_per_sample = 0
-        self.duration = 0
-        self.file_name = ""
-        self.num_channels = 0
-        self.num_frames = 0
-        self.sample_rate = 0
+        self.audio_format = 1 if "audio_format" not in kwargs else kwargs["audio_format"]
+        self.bits_per_sample = 0 if "bits_per_sample" not in kwargs else kwargs["bits_per_sample"]
+        self.block_align = 0 if "block_align" not in kwargs else kwargs["block_align"]
+        self.byte_rate = 0 if "byte_rate" not in kwargs else kwargs["byte_rate"]
+        self.bytes_per_sample = 0 if "bytes_per_sample" not in kwargs else kwargs["bytes_per_sample"]
+        self.duration = 0 if "duration" not in kwargs else kwargs["duration"]
+        self.file_name = "" if "file_name" not in kwargs else kwargs["file_name"]
+        self.num_channels = 0 if "num_channels" not in kwargs else kwargs["num_channels"]
+        self.num_frames = 0 if "num_frames" not in kwargs else kwargs["num_frames"]
+        self.sample_rate = 0 if "sample_rate" not in kwargs else kwargs["sample_rate"]
         self.samples = None
 
 

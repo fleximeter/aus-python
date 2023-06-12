@@ -10,7 +10,6 @@ and the loop points.
 """
 
 import audiofile
-import json
 import multiprocessing as mp
 import sampler
 
