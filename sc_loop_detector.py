@@ -9,9 +9,9 @@ SuperCollider .scd file with data structures containing the audio file paths
 and the loop points.
 """
 
-import audiofile
+import audiopython.audiofile as audiofile
 import multiprocessing as mp
-import sampler
+import audiopython.sampler as sampler
 
 PATH = "D:\\Recording\\Samples\\pianobook\\YamahaC7\\YamahaC7\\Samples"
 CPU_COUNT = mp.cpu_count()

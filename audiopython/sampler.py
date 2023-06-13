@@ -7,7 +7,7 @@ This file contains functionality for processing audio files for use with sampler
 """
 
 import numpy as np
-from audiofile import AudioFile, visualize_audio_file
+from audiopython.audiofile import AudioFile, visualize_audio_file
 
 
 def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_include: int = 0, 

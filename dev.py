@@ -1,7 +1,7 @@
 import scipy.fft
-import sampler
-import spectrum
-import audiofile
+import audiopython.sampler as sampler
+import audiopython.spectrum as spectrum
+import audiopython.audiofile as audiofile
 import numpy as np
 import matplotlib.pyplot as plt
 

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import sampler
-import audiofile
+import audiopython.sampler as sampler
+import audiopython.audiofile as audiofile
 
 file_name = "D:\\Recording\\ReaperProjects\\trombone_samples\\samples\\trombone_sample_mute_9-19-22_a45_f.wav"
 file_name1 = "C:\\Users\\jeff_martin\\Desktop\\sample32.wav"

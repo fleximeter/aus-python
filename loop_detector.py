@@ -8,7 +8,7 @@ in all files contained within a directory.
 """
 
 import audiopython.sampler
-import audiopython.wav
+import audiopython.audiofile
 import os
 
 # set the directory here, and the number of periods for the loop length you want
@@ -24,7 +24,7 @@ loops = {}
 for file in files:
     # print(file)
     num_periods1 = num_periods
-    audio = audiopython.wav.read_wav(f"{directory}\\{file}")
+    audio = audiopython.audiofile.read_wav(f"{directory}\\{file}")
     points = audiopython.sampler.detect_loop_points(audio, 0, num_periods1)
 
     # if no loop points were discovered, decrease the number of periods

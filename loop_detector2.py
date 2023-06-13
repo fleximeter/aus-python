@@ -8,7 +8,7 @@ in all files contained within a directory.
 """
 
 import audiopython.sampler
-import audiopython.wav
+import audiopython.audiofile
 import os
 import pandas
 
@@ -24,7 +24,7 @@ loops = {}
 maxloops = 0
 for file in files:
     num_periods1 = num_periods
-    audio = audiopython.wav.read_wav(f"{directory}\\{file}")
+    audio = audiopython.audiofile.read_wav(f"{directory}\\{file}")
     points = audiopython.sampler.detect_loop_points(audio, 0, num_periods1)
 
     # if no loop points were discovered, decrease the number of periods

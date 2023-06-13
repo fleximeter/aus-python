@@ -9,7 +9,7 @@ This file contains functionality for spectral analysis.
 import scipy.fft
 import numpy as np
 import matplotlib.pyplot as plt
-from audiofile import AudioFile
+from audiopython.audiofile import AudioFile
 
 
 def fft_data_decompose(fft_data):
