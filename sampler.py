@@ -30,15 +30,19 @@ def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_inc
     :param post_envelope_frames: The duration in frames of the post envelope
     :return: A list of AudioFile objects with the samples
     """
+    file_samples = np.hstack((
+        np.zeros((audio.num_channels, pre_frames_to_include), dtype=audio.samples.dtype),
+        audio.samples,
+        np.zeros((audio.num_channels, post_frames_to_include), dtype=audio.samples.dtype)
+    ))
     samples = []
 
     # Adjust the samples to include frames before and after
     for i, region in enumerate(amplitude_regions):
         amplitude_regions[i] = (
-            max(0, region[0] - pre_frames_to_include),
-            min(audio.num_frames - 1, region[1] + post_frames_to_include)
+            region[0] + pre_frames_to_include,
+            region[1] + pre_frames_to_include
         )
-    max_amplitude = np.max(np.abs(audio.samples))
 
     # Create the samples
     for sample in amplitude_regions:
@@ -53,50 +57,34 @@ def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_inc
             num_frames=(sample[1] - sample[0] + 1),
             sample_rate=audio.sample_rate
         )
-        new_audio_file.samples = audio.samples[:, sample[0]:sample[1]+1]
+        new_audio_file.samples = file_samples[:, sample[0]:sample[1]+1]
 
         # Get the windows
         pre_envelope = None
         if pre_envelope_type == "bartlett":
             pre_envelope = np.bartlett(pre_envelope_frames * 2)[:pre_envelope_frames]
-            for i in range(pre_envelope_frames):
-                pre_envelope[i] *= max_amplitude
         elif pre_envelope_type == "blackman":
             pre_envelope = np.blackman(pre_envelope_frames * 2)[:pre_envelope_frames]
-            for i in range(pre_envelope_frames):
-                pre_envelope[i] *= max_amplitude
         elif pre_envelope_type == "hanning":
             pre_envelope = np.hanning(pre_envelope_frames * 2)[:pre_envelope_frames]
-            for i in range(pre_envelope_frames):
-                pre_envelope[i] *= max_amplitude
         elif pre_envelope_type == "hamming":
             pre_envelope = np.hamming(pre_envelope_frames * 2)[:pre_envelope_frames]
-            for i in range(pre_envelope_frames):
-                pre_envelope[i] *= max_amplitude
         post_envelope = None
         if post_envelope_type == "bartlett":
             post_envelope = np.bartlett(post_envelope_frames * 2)[post_envelope_frames:]
-            for i in range(post_envelope_frames):
-                post_envelope[i] *= max_amplitude
         elif post_envelope_type == "blackman":
             post_envelope = np.blackman(post_envelope_frames * 2)[post_envelope_frames:]
-            for i in range(post_envelope_frames):
-                post_envelope[i] *= max_amplitude
         elif post_envelope_type == "hanning":
             post_envelope = np.hanning(post_envelope_frames * 2)[post_envelope_frames:]
-            for i in range(post_envelope_frames):
-                post_envelope[i] *= max_amplitude
         elif post_envelope_type == "hamming":
             post_envelope = np.hamming(post_envelope_frames * 2)[post_envelope_frames:]
-            for i in range(post_envelope_frames):
-                post_envelope[i] *= max_amplitude
         
         # Apply the windows
-        if pre_envelope:
+        if pre_envelope is not None:
             for i in range(pre_envelope_frames):
                 for j in range(new_audio_file.num_channels):
                     new_audio_file.samples[j, i] *= pre_envelope[i]
-        if post_envelope:
+        if post_envelope is not None:
             for i in range(post_envelope_frames):
                 for j in range(new_audio_file.num_channels):
                     new_audio_file.samples[j, new_audio_file.num_frames - post_envelope_frames + i] *= post_envelope[i]

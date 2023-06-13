@@ -16,6 +16,7 @@ file_name7 = "D:\\Desktop\\sample24.aif"
 file_name8 = "D:\\Desktop\\sample32.aif"
 file_name9 = "C:\\Users\jeff_martin\Desktop\sample24.aif"
 file_name10 = "C:\\Users\jeff_martin\Desktop\sample32.aif"
+file_name11 = "D:\\Recording\\Samples\\Iowa\\Violin.arco.mono.1644.1\\Violin.arco.ff.sulA.A4B4.mono.aif"
 
 # a = audiofile.read_wav(file_name2)
 # b = audiofile.read_wav(file_name3)
@@ -26,5 +27,12 @@ file_name10 = "C:\\Users\jeff_martin\Desktop\sample32.aif"
 
 f = "D:\\Recording\\Samples\\pianobook\\YamahaC7\\YamahaC7\\Samples\\C#4_T1D.wav"
 
-a = audiofile.read_wav(f)
+a = audiofile.read(file_name11)
+
+regions = sampler.identify_amplitude_regions(a, 0.000001, num_consecutive=10000)
+
+samples = sampler.extract_samples(a, regions, 10000, 10000, pre_envelope_frames=5000, post_envelope_frames=5000)
+for i in range(len(samples)):
+    audiofile.write_wav(samples[i], f"D:\\Recording\\Temp\\sample{i}.wav")
+
 # audiofile.write_wav(a, "D:\\Desktop\\temp.wav")

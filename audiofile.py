@@ -261,6 +261,9 @@ def read_aiff(file_name: str) -> AudioFile:
             elif chunk_title == HEADER4:
                 sound_chunk_size = audio.read(LARGE_FIELD)
                 sound_chunk_size = int.from_bytes(sound_chunk_size, byteorder="big", signed=False)
+                # This adjustment is necessary because I've encountered a file that has a subchunk size
+                # 1 byte too big.
+                data_size = min(sound_chunk_size, audio_file.num_frames * audio_file.block_align)
                 
                 # Read the offset and block size, which will probably be 0
                 offset = audio.read(LARGE_FIELD)
@@ -277,9 +280,8 @@ def read_aiff(file_name: str) -> AudioFile:
                 else:
                     audio_file.samples = np.zeros((audio_file.num_channels, audio_file.num_frames), dtype=np.int64)
                 
-                frame_size = audio_file.bytes_per_sample * audio_file.num_channels
                 k = 0
-                for i in range(0, len(data), frame_size):
+                for i in range(0, data_size, audio_file.block_align):
                     for j in range(0, audio_file.num_channels):
                         start_point = i + j * audio_file.bytes_per_sample
                         audio_file.samples[j, k] = int.from_bytes(data[start_point:start_point+audio_file.bytes_per_sample], byteorder="big", signed=True)
