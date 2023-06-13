@@ -19,7 +19,8 @@ CPU_COUNT = mp.cpu_count()
 def make_loops(audio_files, queue):
     """
     Makes loops from a list of audio files
-    :param obj: The list of audio files
+    :param audio_files: The list of audio files
+    :param queue: A multiprocessing queue
     """
     MIN_PERIODS = 2  # The minimum number of periods to allow for a set of loop points to be valid
     data = {}
