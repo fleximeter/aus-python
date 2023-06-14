@@ -40,8 +40,8 @@ def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_inc
     # Adjust the samples to include frames before and after
     for i, region in enumerate(amplitude_regions):
         amplitude_regions[i] = (
-            region[0] + pre_frames_to_include,
-            region[1] + pre_frames_to_include
+            region[0],
+            region[1] + pre_frames_to_include + post_frames_to_include
         )
 
     # Create the samples

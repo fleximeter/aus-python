@@ -24,6 +24,7 @@ def extract_samples(audio_files, destination_directory):
     """
     for file in audio_files:
         short_name = os.path.split(file)[-1]
+        print(short_name)
         audio = audiopython.audiofile.read(file)
         amplitude_regions = audiopython.sampler.identify_amplitude_regions(audio, 0.0000001, num_consecutive=10000)
         samples = audiopython.sampler.extract_samples(audio, amplitude_regions, 500, 500, 

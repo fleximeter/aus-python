@@ -231,13 +231,14 @@ def read_aiff(file_name: str) -> AudioFile:
 
         while not eof:
             chunk_title = audio.read(4)
+            chunk_size = audio.read(LARGE_FIELD)
+            chunk_size = int.from_bytes(chunk_size, byteorder="big", signed=False)
+            
             if len(chunk_title) < LARGE_FIELD:
                 eof = True
             
             # read the form chunk
             elif chunk_title == HEADER1:
-                file_size = audio.read(LARGE_FIELD)
-                file_size = int.from_bytes(file_size, byteorder="big", signed=False)
                 label = audio.read(LARGE_FIELD)
 
                 # We can't read files that are in a weird format
@@ -246,8 +247,6 @@ def read_aiff(file_name: str) -> AudioFile:
             
             # read the common chunk
             elif chunk_title == HEADER3:
-                chunk_size = audio.read(LARGE_FIELD)
-                chunk_size = int.from_bytes(chunk_size, byteorder="big", signed=False)
                 common_chunk = audio.read(chunk_size)
                 audio_file.num_channels = int.from_bytes(common_chunk[:2], byteorder="big", signed=False) # number of channels
                 audio_file.num_frames = int.from_bytes(common_chunk[2:6], byteorder="big", signed=False) # number of frames
@@ -259,11 +258,9 @@ def read_aiff(file_name: str) -> AudioFile:
                 
             # read the samples
             elif chunk_title == HEADER4:
-                sound_chunk_size = audio.read(LARGE_FIELD)
-                sound_chunk_size = int.from_bytes(sound_chunk_size, byteorder="big", signed=False)
                 # This adjustment is necessary because I've encountered a file that has a subchunk size
                 # 1 byte too big.
-                data_size = min(sound_chunk_size, audio_file.num_frames * audio_file.block_align)
+                data_size = min(chunk_size, audio_file.num_frames * audio_file.block_align)
                 
                 # Read the offset and block size, which will probably be 0
                 offset = audio.read(LARGE_FIELD)
@@ -288,6 +285,10 @@ def read_aiff(file_name: str) -> AudioFile:
                     k += 1
 
                 audio_file.duration = audio_file.num_frames / audio_file.sample_rate
+
+            # Otherwise it's a chunk that we aren't concerned with, so we will discard it.
+            else:
+                audio.read(chunk_size)
 
     # If the AIFF file was formatted unusually, we return nothing and raise a warning.
     if valid_file:
