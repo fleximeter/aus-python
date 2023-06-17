@@ -4,6 +4,7 @@ import audiopython.spectrum as spectrum
 import audiopython.audiofile as audiofile
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.signal
 
 file_name = "D:\\Recording\\Samples\\Iowa\\Violin.arco.mono.1644.1\\Violin.arco.mf.sulE.C7E7.mono.aif"
 
@@ -27,3 +28,6 @@ a = audiofile.read(file_name)
 print(a.num_frames)
 print(type(a.samples))
 
+f, t, Zxx = scipy.signal.stft(a.samples[0, :], 44100, window='hann', nperseg=4096)
+
+print(f[:20])
