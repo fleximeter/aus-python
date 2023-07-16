@@ -12,7 +12,8 @@ import audiopython.sampler
 import multiprocessing as mp
 import os
 
-DIRECTORY = "D:\\Recording\\Samples\\Iowa\\Violin.arco.mono.1644.1"
+VIOLIN_SAMPLES_DIR = "D:\\Recording\\Samples\\Iowa\\Violin.arco.mono.1644.1"
+PIANO_SAMPLES_DIR = "D:\\Recording\\Samples\\Iowa\\Piano"
 CPU_COUNT = mp.cpu_count()
 
 
@@ -35,10 +36,10 @@ def extract_samples(audio_files, destination_directory):
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    destination_directory = os.path.join(DIRECTORY, "samples")
+    destination_directory = os.path.join(PIANO_SAMPLES_DIR, "samples")
     os.makedirs(destination_directory, 511, True)
 
-    files = audiopython.audiofile.find_files(DIRECTORY)
+    files = audiopython.audiofile.find_files(PIANO_SAMPLES_DIR)
 
     # Distribute the audio files among the different processes. This is a good way to do it
     # because we assume that some files will be harder to process, and those will probably
