@@ -121,9 +121,9 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = 0.01, 
         # Scale the level delimiter by the maximum amplitude in the audio file
         if scale_level_delimiter:
             maxval = np.max(np.abs(audio.samples[channel_index, :]))
-            if audio.samples.dtype == np.int32:
+            if audio.samples.dtype == np.int16 or audio.samples.dtype == np.int32 or audio.samples.dtype == np.int64:
                 level_delimiter = round(level_delimiter * maxval)
-            elif audio.samples.dtype == np.float32 or audio.samples.dtype == np.float64:
+            elif audio.samples.dtype == np.float16 or audio.samples.dtype == np.float32 or audio.samples.dtype == np.float64:
                 level_delimiter *= maxval
         
         for i in range(audio.num_frames):
