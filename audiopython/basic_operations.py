@@ -28,18 +28,18 @@ def fade_in(audio: np.array, envelope="hanning", duration=100) -> np.array:
     :param duration: The duration (in frames) of the fade-in envelope half. If the duration is longer than the audio, it will be truncated.
     :return: The audio with a fade in applied.
     """
-    duration = np.min(duration, audio.shape[-1])
+    duration = min(duration, audio.shape[-1])
         
     if envelope == "bartlett":
-        envelope = np.bartlett(duration)[:duration // 2]
+        envelope = np.bartlett(duration * 2)[:duration]
     elif envelope == "blackman":
-        envelope = np.blackman(duration)[:duration // 2]
+        envelope = np.blackman(duration * 2)[:duration]
     elif envelope == "hanning":
-        envelope = np.hanning(duration)[:duration // 2]
+        envelope = np.hanning(duration * 2)[:duration]
     elif envelope == "hamming":
-        envelope = np.hamming(duration)[:duration // 2]
+        envelope = np.hamming(duration * 2)[:duration]
     else:
-        envelope = np.ones((duration))[:duration // 2]
+        envelope = np.ones((duration * 2))[:duration]
     envelope = np.hstack((envelope, np.ones((audio.shape[-1] - envelope.shape[-1]))))
     
     return audio * envelope
@@ -53,18 +53,18 @@ def fade_out(audio: np.array, envelope="hanning", duration=100) -> np.array:
     :param duration: The duration (in frames) of the fade-out envelope half. If the duration is longer than the audio, it will be truncated.
     :return: The audio with a fade-out applied.
     """
-    duration = np.min(duration, audio.shape[-1])
+    duration = min(duration, audio.shape[-1])
         
     if envelope == "bartlett":
-        envelope = np.bartlett(duration)[duration // 2:]
+        envelope = np.bartlett(duration * 2)[duration:]
     elif envelope == "blackman":
-        envelope = np.blackman(duration)[duration // 2:]
+        envelope = np.blackman(duration * 2)[duration:]
     elif envelope == "hanning":
-        envelope = np.hanning(duration)[duration // 2:]
+        envelope = np.hanning(duration * 2)[duration:]
     elif envelope == "hamming":
-        envelope = np.hamming(duration)[duration // 2:]
+        envelope = np.hamming(duration * 2)[duration:]
     else:
-        envelope = np.ones((duration))[duration // 2:]
+        envelope = np.ones((duration * 2))[duration:]
     envelope = np.hstack((np.ones((audio.shape[-1] - envelope.shape[-1])), envelope))
     
     return audio * envelope
