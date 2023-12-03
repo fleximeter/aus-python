@@ -9,7 +9,7 @@ This file allows you to perform some simple operations on an audio array.
 import numpy as np
 
 
-def dbfs(audio: np.array) -> float:
+def dbfs_audio(audio: np.array) -> float:
     """
     Calculates dbfs (decibels full scale) for a chunk of audio. This function will use the RMS method, 
     and assumes that the audio is in float format where 1 is the highest possible peak.
@@ -18,6 +18,32 @@ def dbfs(audio: np.array) -> float:
     """
     rms = np.sqrt(np.average(np.square(audio), axis=audio.ndim-1))
     return 20 * np.log10(np.abs(rms))
+
+
+def dbfs_max_local(audio: np.array, chunk_size=10, hop_size=5):
+    """
+    Checks the maximum local dbfs (decibels full scale) of an audio file
+    :param audio: The audio
+    :param chunk_size: The chunk size to check
+    :param hop_size: The number of frames to hop from chunk center to chunk center
+    :return: The max local dbfs
+    """
+    dbfs = -np.inf
+    for i in range(0, len(audio), hop_size):
+        end = min(i + chunk_size, len(audio) - 1)
+        rms = np.sqrt(np.average(np.square(audio[i:end]), axis=audio.ndim-1))
+        dbfs = max(20 * np.log10(np.abs(rms)), dbfs)
+    return dbfs
+    
+
+def dbfs_sample(sample) -> float:
+    """
+    Calculates dbfs (decibels full scale) for an audio sample. This function assumes that the 
+    audio is in float format where 1 is the highest possible peak.
+    :param sample: The sample to calculate dbfs for
+    :return: A float value representing the dbfs
+    """
+    return 20 * np.log10(np.abs(sample))
 
 
 def fade_in(audio: np.array, envelope="hanning", duration=100) -> np.array:
