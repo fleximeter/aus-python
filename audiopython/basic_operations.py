@@ -40,7 +40,7 @@ def dbfs_max_local(audio: np.array, chunk_size=10, hop_size=5):
     dbfs = -np.inf
     for i in range(0, len(audio), hop_size):
         end = min(i + chunk_size, len(audio) - 1)
-        rms = np.sqrt(np.average(np.square(audio[i:end]), axis=audio.ndim-1))
+        rms = np.sqrt(np.average(np.square(audio[i:end]), -1))
         dbfs = max(20 * np.log10(np.abs(rms)), dbfs)
     return dbfs
     
