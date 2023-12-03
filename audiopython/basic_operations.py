@@ -9,6 +9,15 @@ This file allows you to perform some simple operations on an audio array.
 import numpy as np
 
 
+def calculate_dc_bias(audio: np.array):
+    """
+    Calculates DC bias of an audio signal
+    :param audio: The audio signal
+    :return: The DC bias
+    """
+    return np.average(audio, axis=audio.ndim-1)
+
+
 def dbfs_audio(audio: np.array) -> float:
     """
     Calculates dbfs (decibels full scale) for a chunk of audio. This function will use the RMS method, 
@@ -96,11 +105,26 @@ def fade_out(audio: np.array, envelope="hanning", duration=100) -> np.array:
     return audio * envelope
     
 
-def leak_dc(audio: np.array) -> np.array:
+def leak_dc_bias(audio: np.array) -> np.array:
     """
     Leaks DC bias of an audio signal
     :param audio: The audio signal
     :return: The bias-free signal
     """
-    mean = np.average(audio, axis=audio.ndim-1)
-    return audio - (mean / 2)
+    return audio - np.average(audio, axis=audio.ndim-1)
+
+
+def mix_if_not_mono(audio: np.array) -> np.array:
+    """
+    Mixes a signal to a mono signal (if it isn't mono already). 
+    If the amplitude is greater than 1, applies gain reduction to bring the amplitude down to 1.
+    :param audio: The audio to mix if it isn't mono
+    """
+    if audio.ndim > 1 and audio.shape[-2] > 1:
+        mix = np.sum(audio, -2)
+        mixmax = np.max(mix)
+        if mixmax > 1:
+            mix /= mixmax
+        return mix
+    else:
+        return audio

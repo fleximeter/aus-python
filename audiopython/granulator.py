@@ -12,6 +12,7 @@ import datetime
 
 _rng = random.Random(datetime.datetime.now().timestamp())
 
+
 def extract_grain(audio: np.array, start_point=None, grain_size=None, window="hanning", max_window_size=None) -> np.array:
     """
     Extracts a single grain from an array of samples.
@@ -66,3 +67,16 @@ def merge_grains(grains: list, overlap_size=10) -> np.array:
         output = np.hstack((output[:-overlap_size], output[-overlap_size:] + grains[current_grain][:overlap_size], grains[current_grain][overlap_size:]))
         current_grain += 1
     return output
+
+
+def scale_grain_peaks(grains: list):
+    """
+    Scales the peaks of a list of grains so they all have the same peak amplitude.
+    The grains will be scaled in place.
+    :param grains: The list of grains
+    """
+    maxamp = 0
+    for grain in grains:
+        maxamp = max(maxamp, np.max(grain))
+    for i in range(len(grains)):
+        grains[i] /= maxamp
