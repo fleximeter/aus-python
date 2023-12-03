@@ -95,3 +95,12 @@ def fade_out(audio: np.array, envelope="hanning", duration=100) -> np.array:
     
     return audio * envelope
     
+
+def leak_dc(audio: np.array) -> np.array:
+    """
+    Leaks DC bias of an audio signal
+    :param audio: The audio signal
+    :return: The bias-free signal
+    """
+    mean = np.average(audio, axis=audio.ndim-1)
+    return audio - (mean / 2)
