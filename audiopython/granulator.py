@@ -9,6 +9,7 @@ This file is for experimenting with granular synthesis.
 import numpy as np
 import random
 import datetime
+import basic_operations
 
 _rng = random.Random(datetime.datetime.now().timestamp())
 
@@ -52,6 +53,19 @@ def extract_grain(audio: np.array, start_point=None, grain_size=None, window="ha
             window = np.hstack((window[:max_window_size // 2], np.ones((grain_size - max_window_size)), window[max_window_size // 2:]))
         
         return grain * window
+    
+
+def find_max_grain_dbfs(grains: list):
+    """
+    Finds the maximum overall dbfs (by grain) of a list of grains. Useful
+    for getting rid of grains with a low dbfs.
+    :param grains: A list of grains
+    :return: The dbfs of the grain with the loudest dbfs
+    """
+    max_dbfs = -np.inf
+    for grain in grains:
+        max_dbfs = max(max_dbfs,basic_operations.dbfs_audio(grain))
+    return max_dbfs
 
 
 def merge_grains(grains: list, overlap_size=10) -> np.array:
