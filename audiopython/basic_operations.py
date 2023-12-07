@@ -7,6 +7,7 @@ This file allows you to perform some simple operations on an audio array.
 """
 
 import numpy as np
+np.seterr(divide="ignore")
 
 
 def calculate_dc_bias(audio: np.array):
@@ -25,8 +26,11 @@ def dbfs_audio(audio: np.array) -> float:
     :param audio: The audio to calculate dbfs for
     :return: A float value representing the dbfs
     """
-    rms = np.sqrt(np.average(np.square(audio), axis=audio.ndim-1))
-    return 20 * np.log10(np.abs(rms))
+    try:
+        rms = np.sqrt(np.average(np.square(audio), axis=audio.ndim-1))
+        return 20 * np.log10(np.abs(rms))
+    except RuntimeWarning:
+        return -np.inf
 
 
 def dbfs_max_local(audio: np.array, chunk_size=10, hop_size=5):
@@ -40,10 +44,32 @@ def dbfs_max_local(audio: np.array, chunk_size=10, hop_size=5):
     dbfs = -np.inf
     for i in range(0, len(audio), hop_size):
         end = min(i + chunk_size, len(audio) - 1)
-        rms = np.sqrt(np.average(np.square(audio[i:end]), -1))
-        dbfs = max(20 * np.log10(np.abs(rms)), dbfs)
+        try:
+            rms = np.sqrt(np.average(np.square(audio[i:end]), -1))
+            dbfs = max(20 * np.log10(np.abs(rms)), dbfs)
+        except RuntimeWarning:
+            pass
     return dbfs
-    
+
+
+def dbfs_min_local(audio: np.array, chunk_size=10, hop_size=5):
+    """
+    Checks the minimum local dbfs (decibels full scale) of an audio file
+    :param audio: The audio
+    :param chunk_size: The chunk size to check
+    :param hop_size: The number of frames to hop from chunk center to chunk center
+    :return: The min local dbfs
+    """
+    dbfs = 0
+    for i in range(0, len(audio), hop_size):
+        end = min(i + chunk_size, len(audio) - 1)
+        try:
+            rms = np.sqrt(np.average(np.square(audio[i:end]), -1))
+            dbfs = min(20 * np.log10(np.abs(rms)), dbfs)
+        except RuntimeWarning:
+            pass
+    return dbfs
+
 
 def dbfs_sample(sample) -> float:
     """
@@ -120,8 +146,9 @@ def mix_if_not_mono(audio: np.array) -> np.array:
     If the amplitude is greater than 1, applies gain reduction to bring the amplitude down to 1.
     :param audio: The audio to mix if it isn't mono
     """
-    if audio.ndim > 1 and audio.shape[-2] > 1:
+    if audio.ndim > 1:
         mix = np.sum(audio, -2)
+        mix = np.reshape(mix, (mix.shape[-1]))
         mixmax = np.max(mix)
         if mixmax > 1:
             mix /= mixmax

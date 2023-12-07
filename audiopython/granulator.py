@@ -9,8 +9,8 @@ This file is for experimenting with granular synthesis.
 import numpy as np
 import random
 import datetime
-import basic_operations
 
+np.seterr(divide="ignore")
 _rng = random.Random(datetime.datetime.now().timestamp())
 
 
@@ -37,7 +37,6 @@ def extract_grain(audio: np.array, start_point=None, grain_size=None, window="ha
         elif max_window_size > grain_size:
             max_window_size = grain_size
         grain = audio[start_point:start_point + grain_size]
-
         if window == "bartlett":
             window = np.bartlett(max_window_size)
         elif window == "blackman":
@@ -64,7 +63,12 @@ def find_max_grain_dbfs(grains: list):
     """
     max_dbfs = -np.inf
     for grain in grains:
-        max_dbfs = max(max_dbfs,basic_operations.dbfs_audio(grain))
+        try:
+            rms = np.sqrt(np.average(np.square(grain), axis=grain.ndim-1))
+            dbfs = 20 * np.log10(np.abs(rms))
+            max_dbfs = max(max_dbfs, dbfs)
+        except Exception:
+            pass
     return max_dbfs
 
 
