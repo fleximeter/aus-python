@@ -9,16 +9,19 @@ random.seed()
 
 np.seterr(divide="ignore")
 
-DIR = "D:\\Recording\\Samples\\BBC_non_commercial\\Africa 2 - The Natural World"
-DIR2 = "C:\\Users\\jeffr\\Recording\\Samples\\Iowa Samples\\Bass.arco.mono.1644.1"
-DIR2 = "C:\\Users\\jeffr\\Recording\\Samples\\Iowa Samples\\Violin.pizz.mono.1644.1"
+DIR = "D:\\Recording\\Samples"
+DIR2 = "C:\\Users\\jeffr\\Recording\\Samples"
+
+SUBDIR1 = "Iowa\\Viola.pizz.mono.2496"
+SUBDIR2 = "Iowa\\Viola.temp"
+DIR_OUT_1 = "D:\\Recording"
 DIR_OUT_2 = "C:\\Users\\jeffr\\Recording"
 
-files = audiofile.find_files(DIR2)
+files = audiofile.find_files(f"{DIR}\\{SUBDIR1}")
 audio = []
 
 for file in files:
-    with pb.io.AudioFile(file, 'r') as infile:
+    with pb.io.AudioFile(file, 'r').resampled_to(44100) as infile:
         audio_data = infile.read(infile.frames)
         audio_data = basic_operations.mix_if_not_mono(audio_data)
         audio.append(audio_data)
@@ -47,5 +50,5 @@ final_audio = granulator.merge_grains(grains2, GRAIN_SIZE_MIN // 2)
 final_audio = pb.LowpassFilter(4000)(final_audio, 44100)
 final_audio = pb.Compressor(-12, 4)(final_audio, 44100)
 
-with pb.io.AudioFile(f"{DIR_OUT_2}\\grains.wav", 'w', 44100, 1, 24) as out:
+with pb.io.AudioFile(f"{DIR_OUT_1}\\grains.wav", 'w', 44100, 1, 24) as out:
     out.write(final_audio)
