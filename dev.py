@@ -20,13 +20,11 @@ with pb.io.AudioFile("D:\\Recording\\Samples\\Iowa\\Viola.pizz.mono.1644.1\\Viol
     audio = infile.read(infile.frames)[:, 129186:467424]
     audio = np.reshape(audio, (audio.shape[-1]))
 
-spec = scipy.fft.rfft(audio)
-mag, phase = spectrum.fft_data_decompose(spec)
-freqs = scipy.fft.rfftfreq(audio.shape[-1], 1/44100)
+white_noise = np.random.normal(0, 1, size=audio.size)
 
-print(freqs)
-print(mag)
+audio_analysis = analysis.analyzer(audio, 44100)
+print(audio_analysis)
 
-slope, yint = analysis.spectral_slope(mag, freqs)
-print(slope)
-print(yint)
+audio_analysis = analysis.analyzer(white_noise, 44100)
+print(audio_analysis)
+
