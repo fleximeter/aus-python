@@ -28,6 +28,10 @@ def analyzer(audio, sample_rate):
     results['spectral_centroid'] = spectral_centroid(magnitude_spectrum, rfftfreqs)
     results['spectral_flatness'] = spectral_flatness(magnitude_spectrum)
     results['spectral_slope'] = spectral_slope(magnitude_spectrum, rfftfreqs)
+    results['spectral_roll_off_0.5'] = spectral_roll_off_point(magnitude_spectrum, rfftfreqs, 0.5)
+    results['spectral_roll_off_0.75'] = spectral_roll_off_point(magnitude_spectrum, rfftfreqs, 0.75)
+    results['spectral_roll_off_0.9'] = spectral_roll_off_point(magnitude_spectrum, rfftfreqs, 0.9)
+    results['spectral_roll_off_0.95'] = spectral_roll_off_point(magnitude_spectrum, rfftfreqs, 0.95)
     results['zero_crossing_rate'] = zero_crossing_rate(audio, sample_rate)
     results.update(spectral_moments(magnitude_spectrum, rfftfreqs, results["spectral_centroid"]))
     return results
@@ -52,6 +56,21 @@ def spectral_centroid(magnitude_spectrum, magnitude_freqs):
     Reference: Eyben, pp. 39-40
     """
     return np.sum(np.multiply(magnitude_spectrum, magnitude_freqs)) / np.sum(magnitude_spectrum)
+
+
+def spectral_entropy(magnitude_spectrum):
+    """
+    Calculates the spectral entropy from provided magnitude spectrum
+    :param magnitude_spectrum: The magnitude spectrum
+    :return: The spectral entropy
+    Reference: Eyben, pp. 23, 40, 41
+    """
+    power_spectrum = np.square(magnitude_spectrum)
+    spectrum_pmf = power_spectrum / np.sum(power_spectrum)
+    entropy = 0
+    for i in range(spectrum_pmf.size):
+        entropy += spectrum_pmf[i] * np.log2(spectrum_pmf[i])
+    return -entropy
 
 
 def spectral_flatness(magnitude_spectrum):
@@ -88,6 +107,25 @@ def spectral_moments(magnitude_spectrum, magnitude_freqs, centroid):
     spectral_skewness /= np.power(spectral_variance, 3/2)
     spectral_kurtosis /= np.power(spectral_variance, 2)
     return {"spectral_variance": spectral_variance, "spectral_skewness": spectral_skewness, "spectral_kurtosis": spectral_kurtosis}
+
+
+def spectral_roll_off_point(magnitude_spectrum, magnitude_freqs, n):
+    """
+    Calculates the spectral slope from provided magnitude spectrum
+    :param magnitude_spectrum: The magnitude spectrum
+    :param magnitude_freqs: The magnitude frequencies
+    :param n: The roll-off, as a fraction (0 <= n <= 1.00)
+    :return: The roll-off frequency
+    Reference: Eyben, p. 41
+    """
+    power_spectrum = np.square(magnitude_spectrum)
+    energy = np.sum(power_spectrum)
+    i = -1
+    cumulative_energy = 0
+    while cumulative_energy < n and i < magnitude_freqs.size - 1:
+        i += 1
+        cumulative_energy += power_spectrum[i] / energy
+    return magnitude_freqs[i]
 
 
 def spectral_slope(magnitude_spectrum, magnitude_freqs):
