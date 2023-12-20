@@ -1,6 +1,7 @@
 import audiopython.audiofile as audiofile
 import audiopython.granulator as granulator
 import audiopython.basic_operations as basic_operations
+import audiopython.analysis as analysis
 import pedalboard as pb
 import numpy as np
 import random
@@ -12,8 +13,7 @@ np.seterr(divide="ignore")
 DIR = "D:\\Recording\\Samples"
 DIR2 = "C:\\Users\\jeffr\\Recording\\Samples"
 
-SUBDIR1 = "Iowa\\Viola.pizz.mono.2496"
-SUBDIR2 = "Iowa\\Viola.temp"
+SUBDIR1 = "Iowa\\Viola.pizz.mono.2444.1"
 DIR_OUT_1 = "D:\\Recording"
 DIR_OUT_2 = "C:\\Users\\jeffr\\Recording"
 
@@ -44,9 +44,14 @@ max_dbfs = granulator.find_max_grain_dbfs(grains)
 grains2 = []
 for grain in grains:
     if basic_operations.dbfs_audio(grain) / max_dbfs < 2:
-        grains2.append(grain)
+        a = analysis.analyzer(grain, 44100)
+        a["grain"] = grain
+        grains2.append(a)
 
-final_audio = granulator.merge_grains(grains2, GRAIN_SIZE_MIN // 2)
+grains2 = sorted(grains2, key=lambda x: x["spectral_centroid"])
+grains3 = [grain["grain"] for grain in grains2]
+
+final_audio = granulator.merge_grains(grains3, GRAIN_SIZE_MIN // 2)
 final_audio = pb.LowpassFilter(4000)(final_audio, 44100)
 final_audio = pb.Compressor(-12, 4)(final_audio, 44100)
 
