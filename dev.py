@@ -11,21 +11,32 @@ import audiopython.basic_operations as basic_operations
 import pedalboard as pb
 import time
 
-audio = None
+audio_a4 = None
+audio_c4 = None
 
-with pb.io.AudioFile("D:\\Recording\\Samples\\Iowa\\Viola.pizz.mono.1644.1\\Viola.pizz.sulA.mf.A4B4.mono.aif", 'r') as infile:
+with pb.io.AudioFile("D:\\Recording\\Samples\\Iowa\\Viola.pizz.mono.2496\\Viola.pizz.sulG.mf.C4B4.mono.aif", 'r').resampled_to(44100) as infile:
     sample_rate = infile.samplerate
     frames = infile.frames
     channels = infile.num_channels
-    audio = infile.read(infile.frames)[:, 129186:467424]
-    audio = np.reshape(audio, (audio.shape[-1]))
+    audio = infile.read(infile.frames)
+    audio_c4 = audio[:, 42763:80296]
+    audio_a4 = audio[:, 2789697:2826720]
+    audio_c4 = audio_c4.reshape((audio_c4.size))
+    audio_a4 = audio_a4.reshape((audio_a4.size))
 
-white_noise = np.random.normal(0, 1, size=audio.size)
+
+white_noise = np.random.normal(0, 1, size=audio_c4.size)
 x1 = time.time()
 
-audio_analysis = analysis.analyzer(audio, 44100)
+audio_analysis = analysis.analyzer(audio_c4, 44100)
+print("C4")
 print(audio_analysis)
 
+print("A4")
+audio_analysis = analysis.analyzer(audio_a4, 44100)
+print(audio_analysis)
+
+print("Gaussian noise")
 audio_analysis = analysis.analyzer(white_noise, 44100)
 print(audio_analysis)
 
