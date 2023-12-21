@@ -7,7 +7,7 @@ Audio analysis tools developed from Eyben, "Real-Time Speech and Music Classific
 """
 
 import audiopython.spectrum
-import crepe
+import librosa
 import numpy as np
 import scipy.fft
 import scipy.signal
@@ -26,6 +26,8 @@ def analyzer(audio, sample_rate):
     magnitude_spectrum, phase_spectrum = audiopython.spectrum.fft_data_decompose(audio_spectrum)
     rfftfreqs = scipy.fft.rfftfreq(audio.shape[-1], 1/44100)
     results['energy'] = energy(audio)
+    results['pitch'] = pitch_estimation(audio, sample_rate, 55, 880)
+    results['midi'] = midi_estimation_from_pitch(results['pitch'])
     results['spectral_centroid'] = spectral_centroid(magnitude_spectrum, rfftfreqs)
     results['spectral_flatness'] = spectral_flatness(magnitude_spectrum)
     results['spectral_slope'] = spectral_slope(magnitude_spectrum, rfftfreqs)
@@ -46,6 +48,37 @@ def energy(audio):
     Reference: Eyben, pp. 21-22
     """
     return np.sqrt((1 / audio.shape[-1]) * np.sum(np.square(audio)))
+    
+
+def midi_estimation_from_pitch(frequency):
+    """
+    Estimates MIDI note number from provided frequency
+    :param frequency: The frequency
+    :return: The midi note number (or NaN)
+    """
+    return 12 * np.log2(frequency / 440) + 69
+    
+
+def pitch_estimation(audio, sample_rate=44100, min_freq=55, max_freq=880):
+    """
+    Estimates the pitch of the signal, based on the LibRosa pyin function
+    :param audio: A NumPy array of audio samples
+    :param sample_rate: The sample rate of the audio
+    :param min_freq: The minimum frequency allowed for the pyin function
+    :param max_freq: The maximum frequency allowed for the pyin function
+    :return: The pitch
+    """
+    estimates = librosa.pyin(audio, fmin=min_freq, fmax=max_freq, sr=sample_rate)
+    nans = set()
+    for i in range(estimates[0].shape[-1]):
+        if np.isnan(estimates[0][i]):
+            nans.add(i)
+    # We arbitrarily decide that if half of the detected pitches are NaN, we will
+    # be returning NaN
+    if estimates[0].shape[-1] // 2 > len(nans):
+        for i in nans:
+            estimates[0][i] = 0
+    return np.median(estimates[0])
 
 
 def spectral_centroid(magnitude_spectrum, magnitude_freqs):
