@@ -43,9 +43,10 @@ def extract_samples(audio_files, destination_directory):
         for i, sample in enumerate(samples):
             midi = analysis.midi_estimation_from_pitch(analysis.pitch_estimation(basic_operations.mix_if_not_mono(sample.samples), 44100, 27.5, 3520))
             if not np.isnan(midi):
-                # sample.samples = basic_operations.midi_tuner(sample.samples, midi, 1, 44100)
+                sample.samples = basic_operations.midi_tuner(sample.samples, midi, 1, 44100)
+                sample.num_frames = sample.samples.shape[-1]
                 midi = int(np.round(midi))
-            audiofile.write_wav(sample, os.path.join(destination_directory, f"sample_{midi}_{short_name}_{i}.wav"))
+            audiofile.write_wav(sample, os.path.join(destination_directory, f"sample.{midi}.{short_name}.wav"))
 
 
 if __name__ == "__main__":
@@ -58,7 +59,7 @@ if __name__ == "__main__":
     for file in files:
         if re.search(r'ff', file, re.IGNORECASE):
             files2.append(file)
-
+    # files2 = [files2[0]]
     # Distribute the audio files among the different processes. This is a good way to do it
     # because we assume that some files will be harder to process, and those will probably
     # be adjacent to each other in the folder, so we don't want to take blocks of files;

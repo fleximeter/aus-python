@@ -6,6 +6,7 @@ Date: 12/2/23
 This file allows you to perform some simple operations on an audio array.
 """
 
+import librosa
 import numpy as np
 import pedalboard
 np.seterr(divide="ignore")
@@ -152,7 +153,10 @@ def midi_tuner(audio: np.array, midi_estimation, midi_division=1, sample_rate=44
     :return: The tuned audio
     """
     new_midi = round(float(midi_estimation / midi_division)) * midi_division
-    return pedalboard.PitchShift(new_midi - midi_estimation)(audio, sample_rate, 16384)
+    ratio = 2 ** ((new_midi - midi_estimation) / 12)
+    new_sr = sample_rate * ratio
+    # print(midi_estimation, new_midi, ratio, new_sr)
+    return librosa.resample(audio, orig_sr=new_sr, target_sr=sample_rate, res_type="soxr_vhq")
 
 
 def mix_if_not_mono(audio: np.array) -> np.array:
