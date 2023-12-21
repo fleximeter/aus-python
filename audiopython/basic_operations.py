@@ -7,6 +7,7 @@ This file allows you to perform some simple operations on an audio array.
 """
 
 import numpy as np
+import pedalboard
 np.seterr(divide="ignore")
 
 
@@ -140,11 +141,26 @@ def leak_dc_bias(audio: np.array) -> np.array:
     return audio - np.average(audio, axis=audio.ndim-1)
 
 
+def midi_tuner(audio: np.array, midi_estimation, midi_division=1, sample_rate=44100) -> np.array:
+    """
+    Mixes a signal to a mono signal (if it isn't mono already). 
+    If the amplitude is greater than 1, applies gain reduction to bring the amplitude down to 1.
+    :param audio: The audio to tune
+    :param midi_estimation: The MIDI estimation
+    :param midi_division: The MIDI division to tune to (1 for nearest semitone, 0.5 for nearest quarter tone)
+    :param sample_rate: The sample rate of the audio
+    :return: The tuned audio
+    """
+    new_midi = round(float(midi_estimation / midi_division)) * midi_division
+    return pedalboard.PitchShift(new_midi - midi_estimation)(audio, sample_rate, 16384)
+
+
 def mix_if_not_mono(audio: np.array) -> np.array:
     """
     Mixes a signal to a mono signal (if it isn't mono already). 
     If the amplitude is greater than 1, applies gain reduction to bring the amplitude down to 1.
     :param audio: The audio to mix if it isn't mono
+    :return: The mixed audio
     """
     if audio.ndim > 1:
         mix = np.sum(audio, -2)

@@ -8,9 +8,12 @@ and extracts individual samples from them.
 """
 
 import audio_files
+import audiopython.analysis as analysis
 import audiopython.audiofile as audiofile
+import audiopython.basic_operations as basic_operations
 import audiopython.sampler as sampler
 import multiprocessing as mp
+import numpy as np
 import os
 import re
 import scipy.signal
@@ -29,7 +32,7 @@ def extract_samples(audio_files, destination_directory):
     :param destination_directory: The destination sample directory
     """
     for file in audio_files:
-        short_name = os.path.split(file)[-1]
+        short_name = re.sub(r'(\.wav$)|(\.aif+$)', '', os.path.split(file)[-1], re.IGNORECASE)
         print(short_name)
         audio = audiofile.read(file)
         if LOWCUT:
@@ -38,7 +41,11 @@ def extract_samples(audio_files, destination_directory):
         samples = sampler.extract_samples(audio, amplitude_regions, 500, 10000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         for i, sample in enumerate(samples):
-            audiofile.write_wav(sample, os.path.join(destination_directory, f"sample_{short_name}_{i}.wav"))
+            midi = analysis.midi_estimation_from_pitch(analysis.pitch_estimation(basic_operations.mix_if_not_mono(sample.samples), 44100, 27.5, 3520))
+            if not np.isnan(midi):
+                # sample.samples = basic_operations.midi_tuner(sample.samples, midi, 1, 44100)
+                midi = int(np.round(midi))
+            audiofile.write_wav(sample, os.path.join(destination_directory, f"sample_{midi}_{short_name}_{i}.wav"))
 
 
 if __name__ == "__main__":
