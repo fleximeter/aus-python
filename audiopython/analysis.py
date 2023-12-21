@@ -26,7 +26,7 @@ def analyzer(audio, sample_rate):
     magnitude_spectrum, phase_spectrum = audiopython.spectrum.fft_data_decompose(audio_spectrum)
     rfftfreqs = scipy.fft.rfftfreq(audio.shape[-1], 1/44100)
     results['energy'] = energy(audio)
-    results['pitch'] = pitch_estimation(audio, sample_rate, 55, 880)
+    results['pitch'] = pitch_estimation(audio, sample_rate, 27.5, 3520)
     results['midi'] = midi_estimation_from_pitch(results['pitch'])
     results['spectral_centroid'] = spectral_centroid(magnitude_spectrum, rfftfreqs)
     results['spectral_flatness'] = spectral_flatness(magnitude_spectrum)

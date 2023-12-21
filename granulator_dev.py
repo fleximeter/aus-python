@@ -48,7 +48,7 @@ for grain in grains:
         a["grain"] = grain
         grains2.append(a)
 
-grains2 = sorted(grains2, key=lambda x: x["spectral_centroid"])
+grains2 = sorted(grains2, key=lambda x: x["spectral_roll_off_0.5"])
 grains3 = [grain["grain"] for grain in grains2]
 
 final_audio = granulator.merge_grains(grains3, GRAIN_SIZE_MIN // 2)
