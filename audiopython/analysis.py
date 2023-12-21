@@ -6,11 +6,12 @@ Date: 12/17/23
 Audio analysis tools developed from Eyben, "Real-Time Speech and Music Classification"
 """
 
+import audiopython.spectrum
+import crepe
 import numpy as np
 import scipy.fft
 import scipy.signal
 import sklearn.linear_model
-import audiopython.spectrum
 
 
 def analyzer(audio, sample_rate):
