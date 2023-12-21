@@ -144,8 +144,7 @@ def leak_dc_bias(audio: np.array) -> np.array:
 
 def midi_tuner(audio: np.array, midi_estimation, midi_division=1, sample_rate=44100) -> np.array:
     """
-    Mixes a signal to a mono signal (if it isn't mono already). 
-    If the amplitude is greater than 1, applies gain reduction to bring the amplitude down to 1.
+    Retunes audio from a provided midi estimation to the nearest accurate MIDI note
     :param audio: The audio to tune
     :param midi_estimation: The MIDI estimation
     :param midi_division: The MIDI division to tune to (1 for nearest semitone, 0.5 for nearest quarter tone)
