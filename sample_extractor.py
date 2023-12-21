@@ -12,8 +12,14 @@ import audiopython.audiofile as audiofile
 import audiopython.sampler as sampler
 import multiprocessing as mp
 import os
+import re
+import scipy.signal
 
 CPU_COUNT = mp.cpu_count()
+SAMPLE_RATE = 44100
+LOWCUT_FREQ = 55
+LOWCUT = True
+filt = scipy.signal.butter(4, LOWCUT_FREQ, 'high', output='sos', fs=SAMPLE_RATE)
 
 
 def extract_samples(audio_files, destination_directory):
@@ -26,7 +32,9 @@ def extract_samples(audio_files, destination_directory):
         short_name = os.path.split(file)[-1]
         print(short_name)
         audio = audiofile.read(file)
-        amplitude_regions = sampler.identify_amplitude_regions(audio, 0.2, num_consecutive=22000)
+        if LOWCUT:
+            audio.samples = scipy.signal.sosfilt(filt, audio.samples)
+        amplitude_regions = sampler.identify_amplitude_regions(audio, 0.02, num_consecutive=22000)
         samples = sampler.extract_samples(audio, amplitude_regions, 500, 10000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         for i, sample in enumerate(samples):
@@ -35,17 +43,21 @@ def extract_samples(audio_files, destination_directory):
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    destination_directory = os.path.join(audio_files._CELLO_SAMPLES_DIR, "samples_ff")
+    destination_directory = os.path.join(audio_files._VIOLA_SAMPLES_DIR, "samples")
     os.makedirs(destination_directory, 511, True)
 
-    files = audiofile.find_files(os.path.join(audio_files._CELLO_SAMPLES_DIR, "ff"))
+    files = audiofile.find_files(audio_files._VIOLA_SAMPLES_DIR)
+    files2 = []
+    for file in files:
+        if re.search(r'ff', file, re.IGNORECASE):
+            files2.append(file)
 
     # Distribute the audio files among the different processes. This is a good way to do it
     # because we assume that some files will be harder to process, and those will probably
     # be adjacent to each other in the folder, so we don't want to take blocks of files;
     # we want to distribute them individually.
     file_groups = [[] for i in range(CPU_COUNT)]
-    for i, file in enumerate(files):
+    for i, file in enumerate(files2):
         file_groups[i % CPU_COUNT].append(file)
 
     # Start the processes

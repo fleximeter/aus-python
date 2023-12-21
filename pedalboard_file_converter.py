@@ -10,11 +10,13 @@ import pathlib
 import pedalboard as pb
 import queue
 import re
+import scipy.signal
 from audiopython import audiofile
 
 
-IN_DIR = "D:\\Recording\\Samples\\Iowa\\Viola.arco.mono.2496"
-OUT_DIR = "D:\\Recording\\Samples\\Iowa\\Viola.arco.mono.2444.1"
+IN_DIR = "D:\\Recording\\Samples\\Iowa\\Violin.pizz.stereo.2496"
+OUT_DIR = "D:\\Recording\\Samples\\Iowa\\Violin.pizz.stereo.2444.1"
+LOWCUT_FREQ = 55
 NEW_SAMPLE_RATE = 44100
 NEW_BIT_DEPTH = 24
 NEW_EXTENSION = "wav"
@@ -22,9 +24,10 @@ NEW_EXTENSION = "wav"
 pathlib.Path(OUT_DIR).mkdir(parents=True, exist_ok=True)
 audio_files = audiofile.find_files(IN_DIR)
 subber = re.compile(r'(\.aif+$)|(\.wav$)')
+filt = scipy.signal.butter(4, LOWCUT_FREQ, 'high', output='sos', fs=NEW_SAMPLE_RATE)
 
 
-def file_converter(files):
+def file_converter1(files):
     for file in files:
         filename = os.path.split(file)[1]
         filename = subber.sub('', filename)
@@ -35,11 +38,24 @@ def file_converter(files):
                     outfile.write(infile.read(1024))
 
 
+def file_converter2(files):
+    for file in files:
+        filename = os.path.split(file)[1]
+        filename = subber.sub('', filename)
+        filename = f"{filename}.{NEW_EXTENSION}"
+        with pb.io.AudioFile(file, 'r').resampled_to(NEW_SAMPLE_RATE) as infile:
+            audio = infile.read(infile.frames)
+            audio = scipy.signal.sosfilt(filt, audio)
+            with pb.io.AudioFile(os.path.join(OUT_DIR, filename), 'w', NEW_SAMPLE_RATE, infile.num_channels, NEW_BIT_DEPTH) as outfile:
+                outfile.write(audio)
+
+
+
 if __name__ == "__main__":
     print("Converting...")
     num_processes = mp.cpu_count()
     num_files_per_process = len(audio_files) // num_processes + 1
-    processes = [mp.Process(target=file_converter, args=(audio_files[num_files_per_process * i:num_files_per_process * (i + 1)],)) for i in range(num_processes)]
+    processes = [mp.Process(target=file_converter2, args=(audio_files[num_files_per_process * i:num_files_per_process * (i + 1)],)) for i in range(num_processes)]
     for p in processes:
         p.start()
     for p in processes:
