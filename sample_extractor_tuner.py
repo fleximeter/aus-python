@@ -4,7 +4,7 @@ Author: Jeff Martin
 Date: 6/13/23
 
 This file loads all audio files with a directory and its subdirectories,
-and extracts individual samples from them.
+and extracts individual samples from them. It also tunes samples to the nearest MIDI note.
 """
 
 import audio_files

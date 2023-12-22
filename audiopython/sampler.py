@@ -8,11 +8,12 @@ This file contains functionality for processing audio files for use with sampler
 
 import os
 import numpy as np
-from audiopython.audiofile import AudioFile, visualize_audio_file
+from audiopython.audiofile import AudioFile, visualize_audio_file, find_files
+import pedalboard as pb
 
 
 class Sample:
-    def init__(self, audio, sample_rate=44100, path=""):
+    def __init__(self, audio, sample_rate=44100, path=""):
         """
         Creates a Sample with provided audio
         :param audio: A NumPy array of audio samples
@@ -331,3 +332,25 @@ def detect_loop_points(audio: AudioFile, channel_index: int = 0, num_periods: in
                 break
 
     return frame_tuples
+
+
+def load_samples(directory) -> list:
+    """
+    Loads preprocessed samples from a directory, and returns them as a list of Samples
+    :param directory: The directory to search
+    :return: A list of Samples
+    """
+    samples = []
+    files = find_files(directory)
+    for file in files:
+        with pb.io.AudioFile(file, "r") as a:
+            audio = a.read(a.frames)
+            sample = Sample(np.reshape(audio, (audio.size)), a.samplerate, file)
+            name_data = os.path.split(file)[-1].split('.')
+            sample.midi = int(name_data[1])
+            sample.instrument_type = name_data[2]
+            sample.dynamic_name = name_data[5]
+            sample.dynamic_id = 3
+            sample.pitched = True
+            samples.append(sample)
+    return samples

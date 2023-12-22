@@ -64,7 +64,7 @@ def find_max_grain_dbfs(grains: list):
     max_dbfs = -np.inf
     for grain in grains:
         try:
-            rms = np.sqrt(np.average(np.square(grain), axis=grain.ndim-1))
+            rms = np.sqrt(np.average(np.square(grain.samples), axis=grain.samples.ndim-1))
             dbfs = 20 * np.log10(np.abs(rms))
             max_dbfs = max(max_dbfs, dbfs)
         except Exception:
@@ -80,9 +80,9 @@ def merge_grains(grains: list, overlap_size=10) -> np.array:
     :return: An array with the combined grains
     """
     current_grain = 1
-    output = grains[0]
+    output = grains[0].samples
     while current_grain < len(grains):
-        output = np.hstack((output[:-overlap_size], output[-overlap_size:] + grains[current_grain][:overlap_size], grains[current_grain][overlap_size:]))
+        output = np.hstack((output[:-overlap_size], output[-overlap_size:] + grains[current_grain].samples[:overlap_size], grains[current_grain].samples[overlap_size:]))
         current_grain += 1
     return output
 
@@ -95,6 +95,6 @@ def scale_grain_peaks(grains: list):
     """
     maxamp = 0
     for grain in grains:
-        maxamp = max(maxamp, np.max(grain))
+        maxamp = max(maxamp, np.max(grain.samples))
     for i in range(len(grains)):
-        grains[i] /= maxamp
+        grains[i].samples /= maxamp

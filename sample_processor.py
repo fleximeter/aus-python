@@ -3,8 +3,8 @@ File: sample_processor.py
 Author: Jeff Martin
 Date: 6/13/23
 
-This file loads all audio files with a directory and its subdirectories,
-and extracts individual samples from them.
+This file loads all samples files within a directory and its subdirectories,
+and processes them.
 """
 
 import audiopython.analysis as analysis
