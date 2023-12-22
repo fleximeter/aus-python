@@ -1,5 +1,5 @@
 """
-File: sample_extractor.py
+File: sample_extractor_tuner.py
 Author: Jeff Martin
 Date: 6/13/23
 
@@ -43,7 +43,14 @@ def extract_samples(audio_files, destination_directory):
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         for i, sample in enumerate(samples):
             sample.samples = basic_operations.leak_dc_bias(sample.samples)
-            audiofile.write_wav(sample, os.path.join(destination_directory, f"{short_name}.{i+1}.wav"))
+            midi = analysis.midi_estimation_from_pitch(analysis.pitch_estimation(basic_operations.mix_if_not_mono(
+                sample.samples
+                ), 44100, 27.5, 5000, 0.5))
+            if not np.isnan(midi) and not np.isinf(midi) and not np.isneginf(midi):
+                sample.samples = basic_operations.midi_tuner(sample.samples, midi, 1, 44100)
+                sample.num_frames = sample.samples.shape[-1]
+                midi = int(np.round(midi))
+            audiofile.write_wav(sample, os.path.join(destination_directory, f"sample.{midi}.{short_name}.wav"))
 
 
 if __name__ == "__main__":
@@ -55,7 +62,7 @@ if __name__ == "__main__":
     files = audio_files.viola_pizz_samples
     files2 = []
     for file in files:
-        if re.search(r'ff', file, re.IGNORECASE):
+        if re.search(r'sulC.ff', file, re.IGNORECASE):
             files2.append(file)
     
     # Distribute the audio files among the different processes. This is a good way to do it
