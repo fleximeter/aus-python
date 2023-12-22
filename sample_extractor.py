@@ -39,11 +39,14 @@ def extract_samples(audio_files, destination_directory):
             audio.samples = scipy.signal.sosfilt(filt, audio.samples)
         audio.samples = basic_operations.leak_dc_bias(audio.samples)
         amplitude_regions = sampler.identify_amplitude_regions(audio, 0.02, num_consecutive=22000)
-        samples = sampler.extract_samples(audio, amplitude_regions, 500, 10000, 
+        samples = sampler.extract_samples(audio, amplitude_regions, 500, 50000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         for i, sample in enumerate(samples):
-            midi = analysis.midi_estimation_from_pitch(analysis.pitch_estimation(basic_operations.mix_if_not_mono(sample.samples), 44100, 27.5, 3520))
-            if not np.isnan(midi):
+            sample.samples = basic_operations.leak_dc_bias(sample.samples)
+            midi = analysis.midi_estimation_from_pitch(analysis.pitch_estimation(basic_operations.mix_if_not_mono(
+                sample.samples
+                ), 44100, 27.5, 5000, 0.5))
+            if not np.isnan(midi) and not np.isinf(midi) and not np.isneginf(midi):
                 sample.samples = basic_operations.midi_tuner(sample.samples, midi, 1, 44100)
                 sample.num_frames = sample.samples.shape[-1]
                 midi = int(np.round(midi))
@@ -52,13 +55,14 @@ def extract_samples(audio_files, destination_directory):
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    destination_directory = os.path.join(audio_files._VIOLA_SAMPLES_DIR, "samples")
+    destination_directory = os.path.join(audio_files._VIOLA_PIZZ_SAMPLES_DIR, "samples")
     os.makedirs(destination_directory, 511, True)
 
-    files = audiofile.find_files(audio_files._VIOLA_SAMPLES_DIR)
+    # files = audiofile.find_files(audio_files._VIOLA_SAMPLES_DIR)
+    files = audio_files.viola_pizz_samples
     files2 = []
     for file in files:
-        if re.search(r'ff', file, re.IGNORECASE):
+        if re.search(r'sulC.ff', file, re.IGNORECASE):
             files2.append(file)
     
     # Distribute the audio files among the different processes. This is a good way to do it

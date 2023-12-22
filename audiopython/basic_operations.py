@@ -142,17 +142,19 @@ def leak_dc_bias(audio: np.array) -> np.array:
     return audio - np.average(audio, axis=audio.ndim-1)
 
 
-def midi_tuner(audio: np.array, midi_estimation, midi_division=1, sample_rate=44100) -> np.array:
+def midi_tuner(audio: np.array, midi_estimation, midi_division=1, sample_rate=44100, target_midi=None) -> np.array:
     """
     Retunes audio from a provided midi estimation to the nearest accurate MIDI note
     :param audio: The audio to tune
     :param midi_estimation: The MIDI estimation
     :param midi_division: The MIDI division to tune to (1 for nearest semitone, 0.5 for nearest quarter tone)
     :param sample_rate: The sample rate of the audio
+    :param target_midi: If specified, overrides the rounding functionality and uses this as the target MIDI note
     :return: The tuned audio
     """
-    new_midi = round(float(midi_estimation / midi_division)) * midi_division
-    ratio = 2 ** ((new_midi - midi_estimation) / 12)
+    if not target_midi:
+        target_midi = round(float(midi_estimation / midi_division)) * midi_division
+    ratio = 2 ** ((target_midi - midi_estimation) / 12)
     new_sr = sample_rate * ratio
     # print(midi_estimation, new_midi, ratio, new_sr)
     return librosa.resample(audio, orig_sr=new_sr, target_sr=sample_rate, res_type="soxr_vhq")

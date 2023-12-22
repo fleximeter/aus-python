@@ -14,11 +14,13 @@ import scipy.signal
 import sklearn.linear_model
 
 
-def analyzer(audio, sample_rate):
+def analyzer(audio, sample_rate, frequency_quantile=0.5):
     """
     Runs a suite of analysis tools on a provided NumPy array of audio samples
     :param audio: A 1D NumPy array of audio samples
     :param sample_rate: The sample rate of the audio
+    :param frequency_quantile: The quantile to select the frequency from, since the frequencies 
+    are calculated as an array of frequencies. Normally the median (0.5) is a good choice.
     :return: A dictionary with the analysis results
     """
     results = {}
@@ -26,7 +28,7 @@ def analyzer(audio, sample_rate):
     magnitude_spectrum, phase_spectrum = audiopython.spectrum.fft_data_decompose(audio_spectrum)
     rfftfreqs = scipy.fft.rfftfreq(audio.shape[-1], 1/44100)
     results['energy'] = energy(audio)
-    results['pitch'] = pitch_estimation(audio, sample_rate, 27.5, 3520)
+    results['pitch'] = pitch_estimation(audio, sample_rate, 27.5, 3520, frequency_quantile)
     results['midi'] = midi_estimation_from_pitch(results['pitch'])
     results['spectral_centroid'] = spectral_centroid(magnitude_spectrum, rfftfreqs)
     results['spectral_flatness'] = spectral_flatness(magnitude_spectrum)
@@ -59,26 +61,28 @@ def midi_estimation_from_pitch(frequency):
     return 12 * np.log2(frequency / 440) + 69
     
 
-def pitch_estimation(audio, sample_rate=44100, min_freq=55, max_freq=880):
+def pitch_estimation(audio, sample_rate=44100, min_freq=55, max_freq=880, quantile=0.5):
     """
     Estimates the pitch of the signal, based on the LibRosa pyin function
     :param audio: A NumPy array of audio samples
     :param sample_rate: The sample rate of the audio
     :param min_freq: The minimum frequency allowed for the pyin function
     :param max_freq: The maximum frequency allowed for the pyin function
+    :param quantile: The quantile to select the frequency from, since the frequencies 
+    are calculated as an array of frequencies. Normally the median (0.5) is a good choice.
     :return: The pitch
     """
     estimates = librosa.pyin(audio, fmin=min_freq, fmax=max_freq, sr=sample_rate)
     nans = set()
     for i in range(estimates[0].shape[-1]):
-        if np.isnan(estimates[0][i]):
+        if np.isnan(estimates[0][i]) or np.isinf(estimates[0][i]) or np.isneginf(estimates[0][i]):
             nans.add(i)
     # We arbitrarily decide that if half of the detected pitches are NaN, we will
     # be returning NaN
     if estimates[0].shape[-1] // 2 > len(nans):
         for i in nans:
             estimates[0][i] = 0
-    return np.median(estimates[0])
+    return np.quantile(estimates[0], quantile)
 
 
 def spectral_centroid(magnitude_spectrum, magnitude_freqs):
