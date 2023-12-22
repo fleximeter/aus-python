@@ -6,8 +6,38 @@ Date: 1/26/23
 This file contains functionality for processing audio files for use with samplers.
 """
 
+import os
 import numpy as np
 from audiopython.audiofile import AudioFile, visualize_audio_file
+
+
+class Sample:
+    def init__(self, audio, sample_rate=44100, path=""):
+        """
+        Creates a Sample with provided audio
+        :param audio: A NumPy array of audio samples
+        :param sample_rate: The sample rate of the audio
+        :param path: The path of the audio file
+        """
+        self.samples = audio
+        self.sample_rate = sample_rate
+        self.path = path
+        if path != "":
+            self.file_name = os.path.split(path)[-1]
+        else:
+            self.file_name = ""
+ 
+        self.frames = audio.shape[-1]
+        self.duration = self.frames / self.sample_rate
+ 
+        self.analysis = {}
+        self.dynamic_name = ""
+        self.dynamic_id = 0
+        self.instrument_type = ""
+        self.midi = 0
+        self.pitched = True
+        self.string_name = ""
+        self.string_id = 0
 
 
 def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_include: int = 0, 

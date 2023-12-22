@@ -14,9 +14,9 @@ import scipy.signal
 from audiopython import audiofile
 
 
-IN_DIR = "D:\\Recording\\Samples\\Iowa\\Violin.pizz.stereo.2496"
-OUT_DIR = "D:\\Recording\\Samples\\Iowa\\Violin.pizz.stereo.2444.1"
-LOWCUT_FREQ = 55
+IN_DIR = "D:\\Recording\\Samples\\Iowa\\Guitar.stereo.2496"
+OUT_DIR = "D:\\Recording\\Samples\\Iowa\\Guitar.stereo.2444.1"
+LOWCUT_FREQ = 27.5
 NEW_SAMPLE_RATE = 44100
 NEW_BIT_DEPTH = 24
 NEW_EXTENSION = "wav"
@@ -48,7 +48,6 @@ def file_converter2(files):
             audio = scipy.signal.sosfilt(filt, audio)
             with pb.io.AudioFile(os.path.join(OUT_DIR, filename), 'w', NEW_SAMPLE_RATE, infile.num_channels, NEW_BIT_DEPTH) as outfile:
                 outfile.write(audio)
-
 
 
 if __name__ == "__main__":

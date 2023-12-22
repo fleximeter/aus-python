@@ -37,6 +37,7 @@ def extract_samples(audio_files, destination_directory):
         audio = audiofile.read(file)
         if LOWCUT:
             audio.samples = scipy.signal.sosfilt(filt, audio.samples)
+        audio.samples = basic_operations.leak_dc_bias(audio.samples)
         amplitude_regions = sampler.identify_amplitude_regions(audio, 0.02, num_consecutive=22000)
         samples = sampler.extract_samples(audio, amplitude_regions, 500, 10000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
@@ -59,7 +60,7 @@ if __name__ == "__main__":
     for file in files:
         if re.search(r'ff', file, re.IGNORECASE):
             files2.append(file)
-    # files2 = [files2[0]]
+    
     # Distribute the audio files among the different processes. This is a good way to do it
     # because we assume that some files will be harder to process, and those will probably
     # be adjacent to each other in the folder, so we don't want to take blocks of files;
