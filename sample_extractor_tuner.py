@@ -1,7 +1,7 @@
 """
 File: sample_extractor_tuner.py
 Author: Jeff Martin
-Date: 6/13/23
+Date: 12/22/23
 
 This file loads all audio files with a directory and its subdirectories,
 and extracts individual samples from them. It also tunes samples to the nearest MIDI note.
