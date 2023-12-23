@@ -19,6 +19,7 @@ import re
 import scipy.signal
 
 CPU_COUNT = mp.cpu_count()
+PEAK_VAL = 0.25
 SAMPLE_RATE = 44100
 LOWCUT_FREQ = 55
 LOWCUT = True
@@ -33,16 +34,27 @@ def extract_samples(audio_files, destination_directory):
     """
     for file in audio_files:
         short_name = re.sub(r'(\.wav$)|(\.aif+$)', '', os.path.split(file)[-1], re.IGNORECASE)
-        print(short_name)
-        audio = audiofile.read(file)
+        
+        # Read the audio file
+        audio = audiofile.read_with_pedalboard(file)
+        audio.bits_per_sample = 24
+        audio.num_channels = 1
+
+        # Perform preprocessing
         if LOWCUT:
             audio.samples = scipy.signal.sosfilt(filt, audio.samples)
         audio.samples = basic_operations.leak_dc_bias(audio.samples)
+
+        # Extract the samples. You may need to tweak some settings here to optimize sample extraction.
         amplitude_regions = sampler.identify_amplitude_regions(audio, 0.02, num_consecutive=22000)
         samples = sampler.extract_samples(audio, amplitude_regions, 500, 50000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
+        
+        # Perform postprocessing, including scaling dynamic level and tuning
         for i, sample in enumerate(samples):
             sample.samples = basic_operations.leak_dc_bias(sample.samples)
+            current_peak = np.max(np.abs(sample.samples))
+            sample.samples *= PEAK_VAL / current_peak
             midi = analysis.midi_estimation_from_pitch(analysis.pitch_estimation(basic_operations.mix_if_not_mono(
                 sample.samples
                 ), 44100, 27.5, 5000, 0.5))
@@ -50,19 +62,23 @@ def extract_samples(audio_files, destination_directory):
                 sample.samples = basic_operations.midi_tuner(sample.samples, midi, 1, 44100)
                 sample.num_frames = sample.samples.shape[-1]
                 midi = int(np.round(midi))
-            audiofile.write_wav(sample, os.path.join(destination_directory, f"sample.{midi}.{short_name}.wav"))
+            audiofile.write_with_pedalboard(sample, os.path.join(destination_directory, f"{short_name}.{i+1}.wav"))
+
 
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    destination_directory = os.path.join(audio_files._VIOLA_PIZZ_SAMPLES_DIR, "samples")
+    destination_directory = os.path.join(audio_files._VIOLA_SAMPLES_DIR, "samples")
     os.makedirs(destination_directory, 511, True)
 
     # files = audiofile.find_files(audio_files._VIOLA_SAMPLES_DIR)
-    files = audio_files.viola_pizz_samples
+    files = audio_files.viola_samples
     files2 = []
+    # A basic file filter. We exclude samples that have already been created, because
+    # they have "sample." in the file name. We also are targeting samples of a specific
+    # dynamic level here.
     for file in files:
-        if re.search(r'sulC.ff', file, re.IGNORECASE):
+        if re.search(r'mf', file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
             files2.append(file)
     
     # Distribute the audio files among the different processes. This is a good way to do it

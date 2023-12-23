@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 import math
 import struct
 import os
+import pedalboard as pb
 import re
 
 LARGE_FIELD = 4
@@ -205,6 +206,28 @@ def read(file_name: str) -> AudioFile:
         return read_wav(file_name)
     else:
         return None
+
+
+def read_with_pedalboard(file_name: str) -> AudioFile:
+    """
+    Reads an audio file (AIFF or WAV) and returns an AudioFile object containing the contents of the
+    file. It uses the Pedalboard library for faster reading and automatic conversion to float.
+    :param file_name: The name of the file
+    :return: An AudioFile
+    """
+    audio = None
+    samples1 = None            
+    with pb.io.AudioFile(file_name, 'r') as infile:
+        samples1 = infile.read(infile.frames)
+        audio = AudioFile(
+            num_channels = infile.num_channels,
+            file_name = file_name,
+            num_frames = infile.frames,
+            sample_rate = infile.samplerate,
+            duration = infile.frames / infile.samplerate
+        )
+    audio.samples = samples1
+    return audio
 
 
 def read_aiff(file_name: str) -> AudioFile:
@@ -596,3 +619,13 @@ def write_aiff(file: AudioFile, path: str):
         
         else:
             raise Exception(message="Invalid audio format. AIFF only supports PCM fixed (int) format (1).")
+
+
+def write_with_pedalboard(audio, file_name):
+    """
+    Writes an audio file using the Pedalboard library
+    :param audio: The AudioFile object
+    :param file_name: The file name to use
+    """
+    with pb.io.AudioFile(file_name, 'w', audio.sample_rate, audio.num_channels, audio.bits_per_sample) as outfile:
+        outfile.write(audio.samples)
