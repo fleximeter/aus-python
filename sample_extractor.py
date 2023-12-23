@@ -15,13 +15,16 @@ import audiopython.sampler as sampler
 import multiprocessing as mp
 import numpy as np
 import os
+import pedalboard as pb
 import re
 import scipy.signal
 
 CPU_COUNT = mp.cpu_count()
 SAMPLE_RATE = 44100
+PEAK_VAL = 0.25
 LOWCUT_FREQ = 55
 LOWCUT = True
+LEVEL = -6
 filt = scipy.signal.butter(4, LOWCUT_FREQ, 'high', output='sos', fs=SAMPLE_RATE)
 
 
@@ -33,8 +36,17 @@ def extract_samples(audio_files, destination_directory):
     """
     for file in audio_files:
         short_name = re.sub(r'(\.wav$)|(\.aif+$)', '', os.path.split(file)[-1], re.IGNORECASE)
-        print(short_name)
-        audio = audiofile.read(file)
+        audio = None
+        samples1 = None            
+        with pb.io.AudioFile(file, 'r') as infile:
+            samples1 = infile.read(infile.frames)
+            audio = audiofile.AudioFile(
+                num_channels = infile.num_channels,
+                file_name = file,
+                num_frames = infile.frames,
+                sample_rate = infile.samplerate
+            )
+        audio.samples = samples1
         if LOWCUT:
             audio.samples = scipy.signal.sosfilt(filt, audio.samples)
         audio.samples = basic_operations.leak_dc_bias(audio.samples)
@@ -43,7 +55,10 @@ def extract_samples(audio_files, destination_directory):
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         for i, sample in enumerate(samples):
             sample.samples = basic_operations.leak_dc_bias(sample.samples)
-            audiofile.write_wav(sample, os.path.join(destination_directory, f"{short_name}.{i+1}.wav"))
+            current_peak = np.max(np.abs(sample.samples))
+            sample.samples *= PEAK_VAL / current_peak
+            with pb.io.AudioFile(os.path.join(destination_directory, f"{short_name}.{i+1}.wav"), 'w', 44100, 1, 24) as outfile:
+                outfile.write(sample.samples)
 
 
 if __name__ == "__main__":

@@ -15,31 +15,11 @@ import librosa
 audio_a4 = None
 audio_c4 = None
 
-with pb.io.AudioFile("D:\\Recording\\Samples\\Iowa\\Viola.pizz.mono.2444.1\\Viola.pizz.sulG.mf.C4B4.mono.wav", 'r') as infile:
+with pb.io.AudioFile("D:\\Recording\\Samples\\Iowa\\Viola.pizz.mono.2444.1\\samples\\sample.48.Viola.pizz.sulC.ff.C3B3.mono.wav", 'r') as infile:
     sample_rate = infile.samplerate
     frames = infile.frames
     channels = infile.num_channels
     audio = infile.read(infile.frames)
-    audio_c4 = audio[:, 39282:72576]
-    audio_a4 = audio[:, 2563026:2585448]
-    audio_c4 = audio_c4.reshape((audio_c4.size))
-    audio_a4 = audio_a4.reshape((audio_a4.size))
-
-
-white_noise = np.random.normal(0, 1, size=audio_c4.size)
-x1 = time.time()
-
-audio_analysis = analysis.analyzer(audio_c4, 44100)
-print("C4")
-print(audio_analysis)
-
-audio_analysis = analysis.analyzer(audio_a4, 44100)
-print("A4")
-print(audio_analysis)
-
-print("Gaussian noise")
-audio_analysis = analysis.analyzer(white_noise, 44100)
-print(audio_analysis)
-
-x2 = time.time() - x1
-print(x2, "seconds")
+    print(basic_operations.dbfs_audio(audio))
+    audio = basic_operations.adjust_level(audio, -6)
+    print(basic_operations.dbfs_audio(audio))

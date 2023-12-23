@@ -12,6 +12,18 @@ import pedalboard
 np.seterr(divide="ignore")
 
 
+def adjust_level(audio: np.array, max_level: float) -> np.array:
+    """
+    Adjusts the level of audio to a specified dB level
+    :param audio: The audio samples as a NumPy array
+    :param max_level: The max level for the audio
+    :return: The scaled audio
+    """
+    current_rms = np.sqrt(np.average(np.square(audio), axis=audio.ndim-1))[0]
+    target_rms = 10 ** (max_level / 20)
+    return audio * (target_rms / current_rms)
+
+
 def calculate_dc_bias(audio: np.array):
     """
     Calculates DC bias of an audio signal
