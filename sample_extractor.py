@@ -37,7 +37,7 @@ def extract_samples(audio_files, destination_directory):
         
         # Read the audio file
         audio = audiofile.read_with_pedalboard(file)
-        audio.bits_per_sample = 24
+        audio.bits_per_sample = 16
         audio.num_channels = 1
         
         # Perform preprocessing
@@ -47,7 +47,7 @@ def extract_samples(audio_files, destination_directory):
 
         # Extract the samples. You may need to tweak some settings here to optimize sample extraction.
         amplitude_regions = sampler.identify_amplitude_regions(audio, 0.02, num_consecutive=22000)
-        samples = sampler.extract_samples(audio, amplitude_regions, 500, 50000, 
+        samples = sampler.extract_samples(audio, amplitude_regions, 500, 10000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         
         # Perform postprocessing, including scaling the audio
@@ -60,17 +60,17 @@ def extract_samples(audio_files, destination_directory):
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    destination_directory = os.path.join(audio_files._VIOLA_SAMPLES_DIR, "temp")
+    destination_directory = os.path.join(audio_files._BASS_TROMBONE_SAMPLES_DIR, "temp")
     os.makedirs(destination_directory, 511, True)
 
     # files = audiofile.find_files(audio_files._VIOLA_SAMPLES_DIR)
-    files = audio_files.viola_samples
+    files = audio_files.bass_trombone_samples
     files2 = []
     # A basic file filter. We exclude samples that have already been created, because
     # they have "sample." in the file name. We also are targeting samples of a specific
     # dynamic level here.
     for file in files:
-        if re.search(r'mf', file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
+        if re.search(r'ff', file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
             files2.append(file)
     
     # Distribute the audio files among the different processes. This is a good way to do it
