@@ -47,7 +47,7 @@ def extract_samples(audio_files, destination_directory):
 
         # Extract the samples. You may need to tweak some settings here to optimize sample extraction.
         amplitude_regions = sampler.identify_amplitude_regions(audio, 0.02, num_consecutive=22000)
-        samples = sampler.extract_samples(audio, amplitude_regions, 500, 10000, 
+        samples = sampler.extract_samples(audio, amplitude_regions, 500, 70000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         
         # Perform postprocessing, including scaling the audio
@@ -60,11 +60,12 @@ def extract_samples(audio_files, destination_directory):
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    destination_directory = os.path.join(audio_files._BASS_TROMBONE_SAMPLES_DIR, "temp")
+    DIR = "D:\\Recording\\Samples\\Iowa\\Guitar.mono.2444.1"
+    destination_directory = os.path.join(DIR, "temp")
     os.makedirs(destination_directory, 511, True)
 
-    # files = audiofile.find_files(audio_files._VIOLA_SAMPLES_DIR)
-    files = audio_files.bass_trombone_samples
+    files = audiofile.find_files(DIR)
+    # files = audio_files.bass_trombone_samples
     files2 = []
     # A basic file filter. We exclude samples that have already been created, because
     # they have "sample." in the file name. We also are targeting samples of a specific
