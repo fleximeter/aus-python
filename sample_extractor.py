@@ -46,8 +46,8 @@ def extract_samples(audio_files, destination_directory):
         audio.samples = basic_operations.leak_dc_bias(audio.samples)
 
         # Extract the samples. You may need to tweak some settings here to optimize sample extraction.
-        amplitude_regions = sampler.identify_amplitude_regions(audio, 0.02, num_consecutive=22000)
-        samples = sampler.extract_samples(audio, amplitude_regions, 500, 70000, 
+        amplitude_regions = sampler.identify_amplitude_regions(audio, 0.005, num_consecutive=22000)
+        samples = sampler.extract_samples(audio, amplitude_regions, 500, 20000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         
         # Perform postprocessing, including scaling the audio

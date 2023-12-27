@@ -14,8 +14,8 @@ import scipy.signal
 from audiopython import audiofile
 
 
-IN_DIR = "D:\\Recording\\Samples\\Iowa\\Guitar.stereo.2496"
-OUT_DIR = "D:\\Recording\\Samples\\Iowa\\Guitar.stereo.2444.1"
+IN_DIR = "D:\\Recording\\Samples\\Iowa\\Guitar.mono.2496"
+OUT_DIR = "D:\\Recording\\Samples\\Iowa\\Guitar.mono.2444.1"
 LOWCUT_FREQ = 27.5
 NEW_SAMPLE_RATE = 44100
 NEW_BIT_DEPTH = 24
