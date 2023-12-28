@@ -71,7 +71,7 @@ if __name__ == "__main__":
     # they have "sample." in the file name. We also are targeting samples of a specific
     # dynamic level here.
     for file in files:
-        if re.search(r'ff', file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
+        if re.search(r'mf', file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
             files2.append(file)
     
     # Distribute the audio files among the different processes. This is a good way to do it
