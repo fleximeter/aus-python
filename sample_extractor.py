@@ -7,7 +7,6 @@ This file loads all audio files with a directory and its subdirectories,
 and extracts individual samples from them.
 """
 
-import audio_files
 import audiopython.audiofile as audiofile
 import audiopython.basic_operations as basic_operations
 import audiopython.sampler as sampler
@@ -37,6 +36,8 @@ def extract_samples(audio_files, destination_directory):
         
         # Read the audio file
         audio = audiofile.read_with_pedalboard(file)
+        audio.samples = basic_operations.mix_if_not_mono(audio.samples)
+        audio.samples = np.reshape(audio.samples, (1, audio.samples.shape[0]))
         audio.bits_per_sample = 16
         audio.num_channels = 1
         
@@ -46,8 +47,8 @@ def extract_samples(audio_files, destination_directory):
         audio.samples = basic_operations.leak_dc_bias(audio.samples)
 
         # Extract the samples. You may need to tweak some settings here to optimize sample extraction.
-        amplitude_regions = sampler.identify_amplitude_regions(audio, 0.005, num_consecutive=22000)
-        samples = sampler.extract_samples(audio, amplitude_regions, 500, 20000, 
+        amplitude_regions = sampler.identify_amplitude_regions(audio, 0.01, num_consecutive=22000)
+        samples = sampler.extract_samples(audio, amplitude_regions, 500, 10000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         
         # Perform postprocessing, including scaling the audio
@@ -60,7 +61,7 @@ def extract_samples(audio_files, destination_directory):
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    DIR = "D:\\Recording\\Samples\\Iowa\\Guitar.mono.2444.1"
+    DIR = "D:\\Recording\\Samples\\Iowa\\Vibraphone.dampen"
     destination_directory = os.path.join(DIR, "temp")
     os.makedirs(destination_directory, 511, True)
 
@@ -71,7 +72,7 @@ if __name__ == "__main__":
     # they have "sample." in the file name. We also are targeting samples of a specific
     # dynamic level here.
     for file in files:
-        if re.search(r'mf', file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
+        if re.search(r'ff', file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
             files2.append(file)
     
     # Distribute the audio files among the different processes. This is a good way to do it

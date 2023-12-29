@@ -3,7 +3,11 @@ File: sc_data_generator.py
 Author: Jeff Martin
 Date: 12/28/23
 
+This file generates SuperCollider data structures from Python data structures,
+to make generating SuperCollider data files easy.
 """
+
+import re
 
 class Array:
     def __init__(self, name):
@@ -84,3 +88,49 @@ class List:
                 elif type(val) == int or type(val) == float:
                     string += f"    {val}\n"
         return string + "];\n"
+
+
+class NestedObjects:
+    """
+    Represents recursive layers of SC data structures
+    """
+    def __init__(self, data=[]):
+        self.data = data
+    
+    def make_sc(self, data, level=0):
+        if len(data) == 0:
+            line = ""
+            for i in range(len(level)):
+                line += ' '
+            if type(data) == list:    
+                line += "List.new"
+            elif type(data) == dict:
+                line += "Dictionary.new"
+            if level == 0:
+                line += ';\n'
+        else:
+            content = ""
+            if type(data) == list:
+                content += "List[\n"
+                for item in data:
+                    if type(item) == list or type(item) == dict:
+                        content += self.make_sc(item, level + 1) + ', '
+                    elif type(item) == str:
+                        content += re.sub(r'\\', '/', item) + ', '
+                    else:
+                        content += f"{item}, "
+                content += "]"
+                if level == 0:
+                    content += ';\n'
+            elif type(data) == dict:
+                content += "Dictionary.new;\n"
+                for key, item in data.items():
+                    if type(item) == list or type(item) == dict:
+                        content += self.make_sc(item, level + 1) + ', '
+                    elif type(item) == str:
+                        content += re.sub(r'\\', '/', item) + ', '
+                    else:
+                        content += f"{item}, "
+                content += "]"
+                if level == 0:
+                    content += ';\n'

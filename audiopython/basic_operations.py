@@ -151,7 +151,12 @@ def leak_dc_bias(audio: np.array) -> np.array:
     :param audio: The audio signal
     :return: The bias-free signal
     """
-    return audio - np.average(audio, axis=audio.ndim-1)
+    if audio.ndim > 1:
+        avg = np.average(audio, axis=audio.ndim-1)
+        avg = np.reshape(avg, (avg.shape[0], 1))
+        return audio - np.repeat(avg, audio.shape[-1], audio.ndim-1)
+    else:
+        return audio - np.average(audio, axis=audio.ndim-1)
 
 
 def midi_tuner(audio: np.array, midi_estimation, midi_division=1, sample_rate=44100, target_midi=None) -> np.array:
