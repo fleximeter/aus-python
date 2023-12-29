@@ -89,48 +89,50 @@ class List:
                     string += f"    {val}\n"
         return string + "];\n"
 
-
-class NestedObjects:
-    """
-    Represents recursive layers of SC data structures
-    """
-    def __init__(self, data=[]):
-        self.data = data
     
-    def make_sc(self, data, level=0):
-        if len(data) == 0:
-            line = ""
-            for i in range(len(level)):
-                line += ' '
-            if type(data) == list:    
-                line += "List.new"
-            elif type(data) == dict:
-                line += "Dictionary.new"
+def make_sc_from_nested_objects(data, level=0):
+    """
+    Makes SC data structures from nested Python data structures, recursively
+    :param data: The data structure to turn into SuperCollider format
+    :param level: The level of indentation (handled automatically)
+    :return: A string with the SuperCollider code
+    """
+    content = ""
+
+    if len(data) == 0:
+        content = " " * (level * 4)
+        if type(data) == list:    
+            content += "List.new"
+        elif type(data) == dict:
+            content += "Dictionary.new"
+        if level == 0:
+            content += ';\n'
+    
+    else:
+        if type(data) == list:
+            content += "List[\n" + " " * ((level + 1) * 4)
+            for item in data:
+                if type(item) == list or type(item) == dict:
+                    content += make_sc_from_nested_objects(item, level + 1) + ', '
+                elif type(item) == str:
+                    content += '\"' + re.sub(r'\\', '/', item) + '\", '
+                else:
+                    content += f"{item}, "
+            content += "\n" + " " * (level * 4) + "]"
             if level == 0:
-                line += ';\n'
-        else:
-            content = ""
-            if type(data) == list:
-                content += "List[\n"
-                for item in data:
-                    if type(item) == list or type(item) == dict:
-                        content += self.make_sc(item, level + 1) + ', '
-                    elif type(item) == str:
-                        content += re.sub(r'\\', '/', item) + ', '
-                    else:
-                        content += f"{item}, "
-                content += "]"
-                if level == 0:
-                    content += ';\n'
-            elif type(data) == dict:
-                content += "Dictionary.new;\n"
-                for key, item in data.items():
-                    if type(item) == list or type(item) == dict:
-                        content += self.make_sc(item, level + 1) + ', '
-                    elif type(item) == str:
-                        content += re.sub(r'\\', '/', item) + ', '
-                    else:
-                        content += f"{item}, "
-                content += "]"
-                if level == 0:
-                    content += ';\n'
+                content += ';\n'
+        elif type(data) == dict:
+            content += "Dictionary.newFrom([\n" + " " * ((level + 1) * 4)
+            for key, item in data.items():
+                content += f"\\{key}, "
+                if type(item) == list or type(item) == dict:
+                    content += make_sc_from_nested_objects(item, level + 1) + ', '
+                elif type(item) == str:
+                    content += '\"' + re.sub(r'\\', '/', item) + '\", '
+                else:
+                    content += f"{item}, "
+            content += "\n" + " " * (level * 4) + "])"
+            if level == 0:
+                content += ';'
+    
+    return content
