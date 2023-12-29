@@ -124,7 +124,7 @@ def make_sc_from_nested_objects(data, level=0):
         elif type(data) == dict:
             content += "Dictionary.newFrom([\n" + " " * ((level + 1) * 4)
             for key, item in data.items():
-                content += f"\\{key}, "
+                content += f"\"{key}\", "
                 if type(item) == list or type(item) == dict:
                     content += make_sc_from_nested_objects(item, level + 1) + ', '
                 elif type(item) == str:
