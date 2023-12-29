@@ -46,6 +46,7 @@ for file in files:
     sample.dynamic_id = dynamics[sample.dynamic_name]
     sample.instrument_type = filename_components[2].lower()
     sample.midi = filename_components[1]
+    path = re.sub(r'\\', '/', sample.path)
     sample_dict = {
         "midi": sample.midi,
         "duration": sample.duration,
@@ -54,9 +55,10 @@ for file in files:
         "dynamic_name": sample.dynamic_name,
         "dynamic_id": sample.dynamic_id,
         "instrument_type": sample.instrument_type,
-        "path": sample.path,
+        "path": path,
         "string_name": sample.string_name,
-        "string_id": sample.string_id
+        "string_id": sample.string_id,
+        "buffer": f"Buffer.read(s, \"{path}\")"
     }
     sc_samples[sample_dict["dynamic_name"]][sample_dict["string_name"]][str(sample_dict["midi"])] = sample_dict
 

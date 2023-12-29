@@ -127,7 +127,7 @@ def make_sc_from_nested_objects(data, level=0):
                 content += f"\"{key}\", "
                 if type(item) == list or type(item) == dict:
                     content += make_sc_from_nested_objects(item, level + 1) + ', '
-                elif type(item) == str:
+                elif type(item) == str and key != "buffer":
                     content += '\"' + re.sub(r'\\', '/', item) + '\", '
                 else:
                     content += f"{item}, "
