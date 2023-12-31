@@ -187,9 +187,7 @@ def mix_if_not_mono(audio: np.array) -> np.array:
     if audio.ndim > 1:
         mix = np.sum(audio, -2)
         mix = np.reshape(mix, (mix.shape[-1]))
-        mixmax = np.max(mix)
-        if mixmax > 1:
-            mix /= mixmax
+        mix /= audio.shape[-2]
         return mix
     else:
         return audio

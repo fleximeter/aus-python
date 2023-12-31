@@ -19,7 +19,7 @@ import scipy.signal
 CPU_COUNT = mp.cpu_count()
 SAMPLE_RATE = 44100
 PEAK_VAL = 0.25
-LOWCUT_FREQ = 55
+LOWCUT_FREQ = 32
 LOWCUT = True
 LEVEL = -6
 filt = scipy.signal.butter(4, LOWCUT_FREQ, 'high', output='sos', fs=SAMPLE_RATE)
@@ -47,8 +47,8 @@ def extract_samples(audio_files, destination_directory):
         audio.samples = basic_operations.leak_dc_bias(audio.samples)
 
         # Extract the samples. You may need to tweak some settings here to optimize sample extraction.
-        amplitude_regions = sampler.identify_amplitude_regions(audio, 0.01, num_consecutive=22000)
-        samples = sampler.extract_samples(audio, amplitude_regions, 500, 10000, 
+        amplitude_regions = sampler.identify_amplitude_regions(audio, 0.002, num_consecutive=22000)
+        samples = sampler.extract_samples(audio, amplitude_regions, 500, 30000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         
         # Perform postprocessing, including scaling the audio
@@ -61,7 +61,7 @@ def extract_samples(audio_files, destination_directory):
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    DIR = "D:\\Recording\\Samples\\Iowa\\Vibraphone.dampen"
+    DIR = "D:\\Recording\\Samples\\Iowa\\Guitar.mono.2444.1"
     destination_directory = os.path.join(DIR, "temp")
     os.makedirs(destination_directory, 511, True)
 
