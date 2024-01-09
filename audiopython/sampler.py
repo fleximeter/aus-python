@@ -85,7 +85,7 @@ def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_inc
             bytes_per_sample=audio.bytes_per_sample,
             duration=(sample[1] - sample[0] + 1) / audio.sample_rate,
             num_channels=audio.num_channels,
-            num_frames=(sample[1] - sample[0] + 1),
+            frames=(sample[1] - sample[0] + 1),
             sample_rate=audio.sample_rate
         )
         new_audio_file.samples = file_samples[:, sample[0]:sample[1]+1]
@@ -118,7 +118,7 @@ def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_inc
         if post_envelope is not None:
             for i in range(post_envelope_frames):
                 for j in range(new_audio_file.num_channels):
-                    new_audio_file.samples[j, new_audio_file.num_frames - post_envelope_frames + i] *= post_envelope[i]
+                    new_audio_file.samples[j, new_audio_file.frames - post_envelope_frames + i] *= post_envelope[i]
 
         samples.append(new_audio_file)
     
@@ -148,7 +148,7 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = 0.01, 
     num_below_threshold = 0
     last_above_threshold = 0
 
-    if audio.num_frames > 0:
+    if audio.frames > 0:
         # Scale the level delimiter by the maximum amplitude in the audio file
         if scale_level_delimiter:
             maxval = np.max(np.abs(audio.samples[channel_index, :]))
@@ -157,7 +157,7 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = 0.01, 
             elif audio.samples.dtype == np.float16 or audio.samples.dtype == np.float32 or audio.samples.dtype == np.float64:
                 level_delimiter *= maxval
         
-        for i in range(audio.num_frames):
+        for i in range(audio.frames):
             if np.abs(audio.samples[channel_index, i]) >= level_delimiter:
                 last_above_threshold = i
                 num_below_threshold = 0
@@ -170,7 +170,7 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = 0.01, 
                     current_region = None
 
         if current_region is not None:
-            regions.append((current_region, audio.num_frames - 1))
+            regions.append((current_region, audio.frames - 1))
 
     return regions
 
@@ -183,7 +183,7 @@ def detect_peaks(audio: AudioFile, channel_index: int = 0) -> list:
     :return: Returns a list of indices; each index corresponds to a frame with a peak in the selected channel.
     """
     peaks = []
-    for i in range(1, audio.num_frames - 1):
+    for i in range(1, audio.frames - 1):
         if audio.samples[channel_index, i-1] < audio.samples[channel_index, i] > audio.samples[channel_index, i+1] \
             and audio.samples[channel_index, i] > 0:
             peaks.append(i)
@@ -204,7 +204,7 @@ def fit_amplitude_envelope(audio: AudioFile, chunk_width: int = 5000, channel_in
     :return: Returns a list of tuples; the tuple has an index and an amplitude value.
     """
     envelope = []
-    for i in range(0, audio.num_frames, chunk_width):
+    for i in range(0, audio.frames, chunk_width):
         peak_idx = np.argmax(np.abs(audio.samples[channel_index, i:i+chunk_width]))
         envelope.append((i + peak_idx, np.abs(audio.samples[channel_index, i + peak_idx])))
     return envelope
@@ -228,7 +228,7 @@ def detect_major_peaks(audio: AudioFile, min_percentage_of_max: float = 0.9, chu
     :return: Returns a list of tuples; the tuple has an index and an amplitude value.
     """
     peaks = []
-    for i in range(1, audio.num_frames - 1, chunk_width):
+    for i in range(1, audio.frames - 1, chunk_width):
         # Get the index and absolute value of the highest peak in the current chunk
         peak_idx = i + np.argmax(audio.samples[channel_index, i:i+chunk_width])
         peak_val = audio.samples[channel_index, peak_idx]
@@ -237,7 +237,7 @@ def detect_major_peaks(audio: AudioFile, min_percentage_of_max: float = 0.9, chu
 
         # Iterate through the current chunk and find all major peaks
         j = i
-        while j < i + chunk_width and j < audio.num_frames - 1:
+        while j < i + chunk_width and j < audio.frames - 1:
             if (
                 # If the current sample is a positive peak (both neighboring samples are lower)
                 (audio.samples[channel_index, j-1] < audio.samples[channel_index, j] > audio.samples[channel_index, j+1] \
@@ -252,7 +252,7 @@ def detect_major_peaks(audio: AudioFile, min_percentage_of_max: float = 0.9, chu
     return peaks
 
 
-def detect_loop_points(audio: AudioFile, channel_index: int = 0, num_periods: int = 5, effective_zero: float = 0.001, maximum_amplitude_variance: float = 0.1) -> list:
+def detect_loop_points(audio: AudioFile, channel_index: int = 0, start_frame: int = 0, num_periods: int = 5, effective_zero: float = 0.001, maximum_amplitude_variance: float = 0.1) -> list:
     """
     Detects loop points in an audio sample. Loop points are frame indices that could be used for
     a seamless repeating loop in a sampler. Ideally, if you choose loop points correctly, no crossfading
@@ -264,6 +264,8 @@ def detect_loop_points(audio: AudioFile, channel_index: int = 0, num_periods: in
     :param audio: An AudioFile object
     :param channel_index: The index of the channel to scan for loops (you really should use mono audio 
     with a sampler)
+    :param start_frame: The starting frame in the audio to search for loop points. This allows you to specify a minimum
+    attack duration.
     :param num_periods: The number of periods to include from the waveform
     :param effective_zero: The threshold below which we just consider the amplitude to be 0. This is assumed to be a 
     floating-point value between 0 (no amplitude) and 1 (max amplitude). If your file is fixed format, this will be 
@@ -328,7 +330,8 @@ def detect_loop_points(audio: AudioFile, channel_index: int = 0, num_periods: in
             # If we've found good loop points, we will record them.
             if np.abs(audio.samples[channel_index, loop_points[0]]) < effective_zero \
                 and np.abs(audio.samples[channel_index, loop_points[1]]) < effective_zero:
-                frame_tuples.append((loop_points[0], loop_points[1]))
+                if loop_points[0] >= start_frame:
+                    frame_tuples.append((loop_points[0], loop_points[1]))
                 break
 
     return frame_tuples

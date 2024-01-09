@@ -21,11 +21,11 @@ import scipy.signal
 
 if __name__ == "__main__":
     print("Starting sample processor...")
-    DIR = "D:\\Recording\\Samples\\Iowa\\TenorTrombone"
+    DIR = "D:\\Recording\\Samples\\Iowa\\BassClarinet"
     destination_directory = os.path.join(DIR, "samples")
     os.makedirs(destination_directory, 511, True)
 
-    with open("config/process.tenortrombone.mf.json", "r") as f:
+    with open("config/process.bassclarinet.mf.json", "r") as f:
         data = json.loads(f.read())
         for file in data:
             with pedalboard.io.AudioFile(file["file"], "r") as a:
@@ -34,16 +34,16 @@ if __name__ == "__main__":
                     scipy.signal.butter(12, 440 * 2 ** ((file["midi"] - 5 - 69) / 12), 'high', output='sos', fs=44100), 
                     audio
                     )
-                midi_est = analysis.midi_estimation_from_pitch(
-                    analysis.pitch_estimation(
-                        basic_operations.mix_if_not_mono(audio), 
-                        44100, 
-                        440 * 2 ** ((file["midi"] - 4 - 69) / 12), 
-                        440 * 2 ** ((file["midi"] + 4 - 69) / 12), 
-                        0.5
-                    ))
-                if not np.isnan(midi_est) and not np.isinf(midi_est) and not np.isneginf(midi_est):
-                   audio = basic_operations.midi_tuner(audio, midi_est, 1, 44100, file["midi"])
+                # midi_est = analysis.midi_estimation_from_pitch(
+                #     analysis.pitch_estimation(
+                #         basic_operations.mix_if_not_mono(audio), 
+                #         44100, 
+                #         440 * 2 ** ((file["midi"] - 4 - 69) / 12), 
+                #         440 * 2 ** ((file["midi"] + 4 - 69) / 12), 
+                #         0.5
+                #     ))
+                # if not np.isnan(midi_est) and not np.isinf(midi_est) and not np.isneginf(midi_est):
+                #    audio = basic_operations.midi_tuner(audio, midi_est, 1, 44100, file["midi"])
                 new_filename = re.sub(r'\.[0-9]+\.wav$', '', os.path.split(file["file"])[-1])
                 with pedalboard.io.AudioFile(os.path.join(destination_directory, f"sample.{file['midi']}.{new_filename}.wav"), 'w', 44100, 1, 24) as outfile:
                     outfile.write(audio)

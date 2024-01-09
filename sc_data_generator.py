@@ -103,6 +103,8 @@ def make_sc_from_nested_objects(data, level=0):
         content = " " * (level * 4)
         if type(data) == list:    
             content += "List.new"
+        elif type(data) == tuple:
+            content += "Array.new"
         elif type(data) == dict:
             content += "Dictionary.new"
         if level == 0:
@@ -112,7 +114,7 @@ def make_sc_from_nested_objects(data, level=0):
         if type(data) == list:
             content += "List[\n" + " " * ((level + 1) * 4)
             for item in data:
-                if type(item) == list or type(item) == dict:
+                if type(item) == list or type(item) == dict or type(item) == tuple:
                     content += make_sc_from_nested_objects(item, level + 1) + ', '
                 elif type(item) == str:
                     content += '\"' + re.sub(r'\\', '/', item) + '\", '
@@ -121,11 +123,23 @@ def make_sc_from_nested_objects(data, level=0):
             content += "\n" + " " * (level * 4) + "]"
             if level == 0:
                 content += ';\n'
+        if type(data) == tuple:
+            content += "["
+            for item in data:
+                if type(item) == list or type(item) == dict or type(item) == tuple:
+                    content += make_sc_from_nested_objects(item, level + 1) + ', '
+                elif type(item) == str:
+                    content += '\"' + re.sub(r'\\', '/', item) + '\", '
+                else:
+                    content += f"{item}, "
+            content += "]"
+            if level == 0:
+                content += ';\n'
         elif type(data) == dict:
             content += "Dictionary.newFrom([\n" + " " * ((level + 1) * 4)
             for key, item in data.items():
                 content += f"\"{key}\", "
-                if type(item) == list or type(item) == dict:
+                if type(item) == list or type(item) == dict or type(item) == tuple:
                     content += make_sc_from_nested_objects(item, level + 1) + ', '
                 elif type(item) == str and key != "buffer":
                     content += '\"' + re.sub(r'\\', '/', item) + '\", '
