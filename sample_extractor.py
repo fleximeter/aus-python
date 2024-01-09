@@ -48,7 +48,7 @@ def extract_samples(audio_files, destination_directory):
 
         # Extract the samples. You may need to tweak some settings here to optimize sample extraction.
         amplitude_regions = sampler.identify_amplitude_regions(audio, 0.002, num_consecutive=22000)
-        samples = sampler.extract_samples(audio, amplitude_regions, 500, 30000, 
+        samples = sampler.extract_samples(audio, amplitude_regions, 500, 5000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         
         # Perform postprocessing, including scaling the audio
@@ -61,7 +61,7 @@ def extract_samples(audio_files, destination_directory):
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    DIR = "D:\\Recording\\Samples\\Iowa\\Guitar.mono.2444.1"
+    DIR = "D:\\Recording\\Samples\\Iowa\\TenorTrombone"
     destination_directory = os.path.join(DIR, "temp")
     os.makedirs(destination_directory, 511, True)
 
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     # they have "sample." in the file name. We also are targeting samples of a specific
     # dynamic level here.
     for file in files:
-        if re.search(r'ff', file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
+        if re.search(r'mf', file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
             files2.append(file)
     
     # Distribute the audio files among the different processes. This is a good way to do it

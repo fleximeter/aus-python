@@ -21,11 +21,11 @@ import scipy.signal
 
 if __name__ == "__main__":
     print("Starting sample processor...")
-    DIR = "D:\\Recording\\Samples\\Iowa\\Guitar.mono.2444.1"
+    DIR = "D:\\Recording\\Samples\\Iowa\\TenorTrombone"
     destination_directory = os.path.join(DIR, "samples")
     os.makedirs(destination_directory, 511, True)
 
-    with open("config/process.guitar.ff.json", "r") as f:
+    with open("config/process.tenortrombone.mf.json", "r") as f:
         data = json.loads(f.read())
         for file in data:
             with pedalboard.io.AudioFile(file["file"], "r") as a:
