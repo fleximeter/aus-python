@@ -18,6 +18,10 @@ import os
 import re
 import scipy.signal
 
+WINROOT = "D:"
+MACROOT = "/Volumes/AudioJeff"
+ROOT = MACROOT
+DIR = f"{ROOT}/Recording/Samples/Iowa/Viola.arco.mono.2444.1"
 CPU_COUNT = mp.cpu_count()
 PEAK_VAL = 0.25
 SAMPLE_RATE = 44100

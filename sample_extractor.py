@@ -16,6 +16,10 @@ import os
 import re
 import scipy.signal
 
+WINROOT = "D:"
+MACROOT = "/Volumes/AudioJeff"
+ROOT = MACROOT
+DIR = f"{ROOT}/Recording/Samples/Iowa/Viola.arco.mono.2444.1"
 CPU_COUNT = mp.cpu_count()
 SAMPLE_RATE = 44100
 PEAK_VAL = 0.25
@@ -61,7 +65,6 @@ def extract_samples(audio_files, destination_directory):
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    DIR = "D:\\Recording\\Samples\\Iowa\\Viola.arco.mono.2444.1"
     destination_directory = os.path.join(DIR, "temp")
     os.makedirs(destination_directory, 511, True)
 

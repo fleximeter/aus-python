@@ -14,9 +14,11 @@ import re
 import scipy.signal
 from audiopython import audiofile
 
-
-IN_DIR = "D:\\Recording\\Samples\\Iowa\\TenorTrombone"
-OUT_DIR = "D:\\Recording\\Samples\\Iowa\\TenorTrombone\\process"
+WINROOT = "D:"
+MACROOT = "/Volumes/AudioJeff"
+ROOT = WINROOT
+IN_DIR = f"{ROOT}/Recording/Samples/Iowa/TenorTrombone"
+OUT_DIR = f"{ROOT}/Recording/Samples/Iowa/TenorTrombone/process"
 LOWCUT_FREQ = 20
 OUT_SAMPLE_RATE = 44100
 OUT_BIT_DEPTH = 24

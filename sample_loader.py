@@ -11,7 +11,10 @@ import sc_data_generator
 import os
 import re
 
-DIR = "D:\\Recording\\Samples\\Iowa\\Viola.arco.mono.2444.1\\samples"
+WINROOT = "D:"
+MACROOT = "/Volumes/AudioJeff"
+ROOT = MACROOT
+DIR = f"{ROOT}/Recording/Samples/Iowa/Viola.arco.mono.2444.1/samples"
 
 files = audiofile.find_files(DIR)
 dynamics = {'pppp': -5, 'ppp': -4, 'pp': -3, 'p': -2, 'mp': -1, 'm': 0, 'mf': 1, 'f': 2, 'ff': 3, 'fff': 4, 'ffff': 5}
@@ -64,12 +67,12 @@ for file in files:
         "loop_points": []
     }
     for i in range(34):
-        loop_points = sampler.detect_loop_points(sample, 0, 25000, 40 - i, 0.001, 0.05)
+        loop_points = sampler.detect_loop_points(sample, 0, 40 - i, 0.001, 0.05, 0.1, 10000, 5000)
         if len(loop_points) > 0:
             break
     if len(loop_points) == 0:
         for i in range(14):
-            loop_points = sampler.detect_loop_points(sample, 0, 25000, 20 - i, 0.001, 0.05 + i * 0.02)
+            loop_points = sampler.detect_loop_points(sample, 0, 20 - i, 0.001, 0.05 + i * 0.04, 0.1, 10000, 5000)
             if len(loop_points) > 0:
                 break
     # print(loop_points)
@@ -77,5 +80,5 @@ for file in files:
     sc_samples["viola.arco"][sample_dict["dynamic_name"]][sample_dict["string_name"].lower()][str(sample_dict["midi"])] = sample_dict
     # sc_samples["viola.arco"][sample_dict["dynamic_name"]][str(sample_dict["midi"])] = sample_dict
 
-with open("D:\\Source\\sc\\Compositions\\spring24\\viola.arco.scd", "w") as outfile:
+with open(os.path.join(DIR, "viola.arco.scd"), "w") as outfile:
     outfile.write(sc_data_generator.make_sc_from_nested_objects(sc_samples))

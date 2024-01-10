@@ -18,10 +18,13 @@ import pedalboard
 import re
 import scipy.signal
 
+WINROOT = "D:"
+MACROOT = "/Volumes/AudioJeff"
+ROOT = MACROOT
+DIR = f"{ROOT}/Recording/Samples/Iowa/Viola.arco.mono.2444.1"
 
 if __name__ == "__main__":
     print("Starting sample processor...")
-    DIR = "D:\\Recording\\Samples\\Iowa\\Viola.arco.mono.2444.1"
     destination_directory = os.path.join(DIR, "samples")
     os.makedirs(destination_directory, 511, True)
 
