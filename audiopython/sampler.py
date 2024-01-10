@@ -45,7 +45,7 @@ def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_inc
                     post_frames_to_include: int = 0, pre_envelope_type="hanning", pre_envelope_frames: int = 20,
                     post_envelope_type="hanning", post_envelope_frames: int = 20) -> list:
     """
-    Extracts samples from an AudioFile
+    Extracts samples from an AudioFile.
     
     :param audio: An AudioFile object
     :param amplitude_regions: A list of amplitude regions from the identify_amplitude_regions function
@@ -59,6 +59,7 @@ def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_inc
     :param post_envelope_type: The envelope type to apply to the end of the sound, for a clean release.
     Supported envelope types are Bartlett, Blackman, Hamming, and Hanning.
     :param post_envelope_frames: The duration in frames of the post envelope
+    
     :return: A list of AudioFile objects with the samples
     """
     file_samples = np.hstack((
@@ -141,6 +142,7 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = 0.01, 
     Note that these samples will not be included in the amplitude region; they will only be used to determine
     if an amplitude region is ending.
     :param channel_index: The index of the channel in the AudioFile to study
+    
     :return: A list of tuples. Each tuple contains the starting and ending frame index of an amplitude region.
     """
     regions = []
@@ -177,7 +179,7 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = 0.01, 
 
 def detect_peaks(audio: AudioFile, channel_index: int = 0) -> list:
     """
-    Detects peaks in an audio file.
+    Detects peaks in an audio file. A peak is located at a sample N where the waveform changes direction.
     :param audio: An AudioFile object with the contents of a WAV file
     :param channel_index: The index of the channel to scan for peaks
     :return: Returns a list of indices; each index corresponds to a frame with a peak in the selected channel.
@@ -212,11 +214,14 @@ def fit_amplitude_envelope(audio: AudioFile, chunk_width: int = 5000, channel_in
 
 def detect_major_peaks(audio: AudioFile, min_percentage_of_max: float = 0.9, chunk_width: int = 5000, channel_index: int = 0) -> list:
     """
-    Detects major peaks in an audio file. A major peak is a peak that is one of the highest in its local region.
+    Detects major peaks in an audio file. A major peak is a sample peak that is one of the highest in its "local region."
+    This is useful for identifying the period length (and therefore the fundamental frequency) of audio with a strong
+    first harmonic, since the first harmonic will create the highest peak of the waveform. It will not
+    work very well on Gaussian noise or audio with a very weak fundamental.
     
-    The local region is specified by the chunk width. We segment the audio file into segments of width chunk_width,
-    and search for the highest peak in that chunk. Then we identify all other peaks that are close in height
-    to the highest peak. A peak is close in height to said peak if it is greater than or equal to min_percentage_of_max
+    The "local region" is specified by the chunk width. We segment the audio file into C segments of width chunk_width,
+    and search for the highest peak P in that chunk. Then we identify all other peaks that are close in height
+    to the highest peak P. A peak is close in height to said peak P if it is greater than or equal to min_percentage_of_max
     of that peak. (For example, suppose the highest peak is 1, and the min_percentage_of_max is 0.9. Then any peak with
     amplitude from 0.9 to 1 will be considered a major peak.)
     
@@ -252,89 +257,114 @@ def detect_major_peaks(audio: AudioFile, min_percentage_of_max: float = 0.9, chu
     return peaks
 
 
-def detect_loop_points(audio: AudioFile, channel_index: int = 0, start_frame: int = 0, num_periods: int = 5, effective_zero: float = 0.001, maximum_amplitude_variance: float = 0.1) -> list:
+def detect_loop_points(audio: AudioFile, channel_index: int = 0, num_periods: int = 5, effective_zero: float = 0.001, 
+                       maximum_amplitude_variance: float = 0.1, sample_amplitude_level_boundary: float = 0.1, 
+                       loop_left_padding: int=100, loop_right_padding: int=100) -> list:
     """
     Detects loop points in an audio sample. Loop points are frame indices that could be used for
     a seamless repeating loop in a sampler. Ideally, if you choose loop points correctly, no crossfading
     would be needed within the loop.
+
     We have several requirements for a good loop:
     1. The standard deviation of peak amplitudes should be minimized (i.e. the loop is not increasing or decreasing in amplitude)
-    2. The distance between successive wave major peaks should be consistent
-    3. The frames at which looping begins and ends should have values as close to 0 as possible
+    2. The distance between successive wave major peaks should be consistent (i.e. we are looking for periodic waveforms)
+    3. The frames at which looping begins and ends should have values as close to 0 as possible (we want to avoid clicks)
+    
     :param audio: An AudioFile object
     :param channel_index: The index of the channel to scan for loops (you really should use mono audio 
     with a sampler)
-    :param start_frame: The starting frame in the audio to search for loop points. This allows you to specify a minimum
-    attack duration.
     :param num_periods: The number of periods to include from the waveform
     :param effective_zero: The threshold below which we just consider the amplitude to be 0. This is assumed to be a 
     floating-point value between 0 (no amplitude) and 1 (max amplitude). If your file is fixed format, this will be 
     automatically scaled.
     :param maximum_amplitude_variance: The maximum percentage difference between the biggest and 
     smallest major peak in the loop
+    :param sample_amplitude_level_boundary: Used to determine where the sample sits in the provided audio file. This is useful
+    because we don't want to detect loop points in just any region of the sample - the loop points should have a similar dynamic
+    level to the rest of the sample.
+    :param loop_left_padding: The number of frames to ignore at the start of the amplitude region. This is needed to keep the loop
+    from being in the attack portion of the sound.
+    :param loop_right_padding: The number of frames to ignore at the end of the amplitude region. This is needed to keep the loop
+    from being too close to the decay portion of the sound.
+    
     :return: A list of tuples that are start and ending frames for looping
     """
 
-    # If we are dealing with a fixed (int) file, we need to adjust the effective zero because
-    # the samples are integers, not floating point values.
-    if type(audio.samples[0, 0]) == np.int16 \
-        or type(audio.samples[0, 0]) == np.int32 \
-        or type(audio.samples[0, 0]) == np.int64: 
-        effective_zero = int(effective_zero * 2 ** (audio.bits_per_sample - 1))
+    # The audio file amplitude level ranges
+    amplitude_level_ranges = identify_amplitude_regions(audio, sample_amplitude_level_boundary, 10, channel_index)
 
-    # The major peaks in the sound file.
-    major_peaks = detect_major_peaks(audio, 0.9, 5000, channel_index)
-    
-    # This stores frame tuples that identify potential loop points.
-    frame_tuples = []
+    if len(amplitude_level_ranges) < 1:
+        return []
+    else:
+        # discard the amplitude level ranges beyond the first one
+        amplitude_level_ranges = amplitude_level_ranges[0]
 
-    # We will try to build a loop starting at each peak, then shifting backward to a zero point.
-    for i in range(len(major_peaks)):
-        potential_loop_peaks = []
+        # If we are dealing with a fixed (int) file, we need to adjust the effective zero because
+        # the samples are integers, not floating point values.
+        if type(audio.samples[0, 0]) == np.int16 \
+            or type(audio.samples[0, 0]) == np.int32 \
+            or type(audio.samples[0, 0]) == np.int64: 
+            effective_zero = int(effective_zero * 2 ** (audio.bits_per_sample - 1))
+            sample_amplitude_level_boundary = int(sample_amplitude_level_boundary * 2 ** (audio.bits_per_sample - 1))
+
+        # The major peaks in the sound file.
+        major_peaks = detect_major_peaks(audio, 0.9, 5000, channel_index)
         
-        # We will use these two valuse to determine if there is too much dynamic variation
-        # within the proposed loop.
-        max_peak = -np.inf  # the absolute value of the major peak with greatest magnitude
-        min_peak = np.inf  # the absolute value of the major peak with least magnitude
-    
-        # We start by grabbing peaks for the minimum number of periods necessary. We have to 
-        # grab an extra peak to complete the final period.
-        for j in range(i, min(i + num_periods + 1, len(major_peaks))):
-            potential_loop_peaks.append(major_peaks[j])
-            peak_abs = np.abs(major_peaks[j][1])
-            if peak_abs > max_peak:
-                max_peak = peak_abs
-            if peak_abs < min_peak:
-                min_peak = peak_abs
+        # This stores frame tuples that identify potential loop points.
+        frame_tuples = []
+
+        # We will try to build a loop starting at each peak, then shifting backward to a zero point.
+        for i in range(len(major_peaks)):
+            potential_loop_peaks = []
+            
+            # We will use these two valuse to determine if there is too much dynamic variation
+            # within the proposed loop.
+            max_peak = -np.inf  # the absolute value of the major peak with greatest magnitude
+            min_peak = np.inf  # the absolute value of the major peak with least magnitude
         
-        # If we weren't able to pull enough periods, we can't continue with making the loop.
-        if len(potential_loop_peaks) < num_periods:
-            break
-
-        # If there's too much dynamic variation in this audio chunk, we can't continue with
-        # making the loop.
-        if (max_peak - min_peak) / max_peak > maximum_amplitude_variance:
-            continue
-
-        # We need to record loop points now. Recall that the final peak is actually the beginning
-        # of the next period, so we need to move back one sample.
-        loop_points = [potential_loop_peaks[0][0], potential_loop_peaks[-1][0] - 1]
-        period_width = (loop_points[1] - loop_points[0]) // num_periods
-
-        # Now we shift back to make the loop start and end on 0. There might be multiple possible
-        # places where the loop could start and end on 0.
-        while loop_points[0] + period_width > potential_loop_peaks[0][0] and loop_points[0] >= 0:
-            loop_points[0] -= 1
-            loop_points[1] -= 1
-
-            # If we've found good loop points, we will record them.
-            if np.abs(audio.samples[channel_index, loop_points[0]]) < effective_zero \
-                and np.abs(audio.samples[channel_index, loop_points[1]]) < effective_zero:
-                if loop_points[0] >= start_frame:
-                    frame_tuples.append((loop_points[0], loop_points[1]))
+            # We start by grabbing peaks for the minimum number of periods necessary. We have to 
+            # grab an extra peak to complete the final period.
+            for j in range(i, min(i + num_periods + 1, len(major_peaks))):
+                potential_loop_peaks.append(major_peaks[j])
+                peak_abs = np.abs(major_peaks[j][1])
+                if peak_abs > max_peak:
+                    max_peak = peak_abs
+                if peak_abs < min_peak:
+                    min_peak = peak_abs
+            
+            # If we weren't able to pull enough periods, we can't continue with making the loop.
+            if len(potential_loop_peaks) < num_periods:
                 break
 
-    return frame_tuples
+            # If there's too much dynamic variation in this audio chunk, we can't continue with
+            # making the loop. We want loops that have a steady sound, rather than fluctuating
+            # wildly in dynamic level.
+            if (max_peak - min_peak) / max_peak > maximum_amplitude_variance:
+                continue
+
+            # We need to record loop points now. Recall that the final peak is actually the beginning
+            # of the next period, so we need to move back one sample.
+            loop_points = [potential_loop_peaks[0][0], potential_loop_peaks[-1][0] - 1]
+            period_width = (loop_points[1] - loop_points[0]) // num_periods
+
+            # Now we shift back to make the loop start and end on 0. There might be multiple possible
+            # places where the loop could start and end on 0.
+            while loop_points[0] + period_width > potential_loop_peaks[0][0] and loop_points[0] >= 0:
+                loop_points[0] -= 1
+                loop_points[1] -= 1
+
+                # If we've found good loop points, we will record them. They must match the following criteria:
+                # 1. Start and end at the effective zero level (to avoid clicks)
+                # 2. Be located within the amplitude level range that was identified earlier (to avoid identifying
+                #    loop points within the attack or decay portions of the sample)
+                if np.abs(audio.samples[channel_index, loop_points[0]]) < effective_zero \
+                    and np.abs(audio.samples[channel_index, loop_points[1]]) < effective_zero:
+                    if loop_points[0] >= amplitude_level_ranges[0] + loop_left_padding \
+                        and loop_points[1] <= amplitude_level_ranges[1] - loop_right_padding:
+                        frame_tuples.append((loop_points[0], loop_points[1]))
+                    break
+
+        return frame_tuples
 
 
 def load_samples(directory) -> list:
