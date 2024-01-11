@@ -8,20 +8,27 @@ and processes them. It is useful for performing postprocessing after sample extr
 for naming samples properly and for applying some filtering and tuning.
 """
 
-import audio_files
 import audiopython.analysis as analysis
 import audiopython.basic_operations as basic_operations
 import json
 import numpy as np
 import os
 import pedalboard
+import platform
 import re
 import scipy.signal
 
-WINROOT = "D:"
+# Directory stuff
+WINROOT = "D:\\"
 MACROOT = "/Volumes/AudioJeff"
-ROOT = MACROOT
-DIR = f"{ROOT}/Recording/Samples/Iowa/Viola.arco.mono.2444.1"
+PLATFORM = platform.platform()
+ROOT = WINROOT
+
+if re.search(r'macos', PLATFORM, re.IGNORECASE):
+    ROOT = MACROOT
+
+DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Viola.arco.mono.2444.1")
+
 
 if __name__ == "__main__":
     print("Starting sample processor...")

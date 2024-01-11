@@ -3,7 +3,10 @@ import audiopython.granulator as granulator
 import audiopython.basic_operations as basic_operations
 import audiopython.analysis as analysis
 import audiopython.sampler as sampler
+import os
 import pedalboard as pb
+import platform
+import re
 import numpy as np
 import random
 
@@ -11,18 +14,24 @@ random.seed()
 
 np.seterr(divide="ignore")
 
-DIR = "D:\\Recording\\Samples"
-DIR2 = "C:\\Users\\jeffr\\Recording\\Samples"
+# Directory stuff
+WINROOT = "D:\\"
+MACROOT = "/Volumes/AudioJeff"
+PLATFORM = platform.platform()
+ROOT = WINROOT
 
-SUBDIR1 = "Iowa\\Viola.pizz.mono.2444.1\\samples"
-DIR_OUT_1 = "D:\\Recording"
-DIR_OUT_2 = "C:\\Users\\jeffr\\Recording"
+if re.search(r'macos', PLATFORM, re.IGNORECASE):
+    ROOT = MACROOT
 
-samples = sampler.load_samples("D:\\Recording\\Samples\\Iowa\\Viola.pizz.mono.2444.1\\samples")
+DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Viola.arco.mono.2444.1", "samples")
+DIR_OUT = os.path.join(ROOT, "Recording")
+
+# Basic audio stuff
 NUM_GRAINS = 20000
 GRAIN_SIZE_MIN = 1000
 GRAIN_SIZE_MAX = 10000
 
+samples = sampler.load_samples(DIR)
 grains = []
 
 for i in range(NUM_GRAINS):
@@ -53,5 +62,5 @@ final_audio = granulator.merge_grains(grains2, GRAIN_SIZE_MIN // 2)
 final_audio = pb.LowpassFilter(4000)(final_audio, 44100)
 final_audio = pb.Compressor(-12, 4)(final_audio, 44100)
 
-with pb.io.AudioFile(f"{DIR_OUT_1}\\grains.wav", 'w', 44100, 1, 24) as out:
+with pb.io.AudioFile(f"{DIR_OUT}\\grains.wav", 'w', 44100, 1, 24) as out:
     out.write(final_audio)

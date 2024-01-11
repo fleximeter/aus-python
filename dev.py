@@ -12,7 +12,16 @@ import pedalboard as pb
 import time
 import librosa
 import sc_data_generator
+import os
+import platform
+import re
 
-x = ["apple", 5, {"able": 1, "baker": 2, "charlie": 3}, ["apple", "cat", {"able": "alpha", "baker": "beta"}]]
-s = sc_data_generator.make_sc_from_nested_objects(x)
-print(s)
+WINROOT = "D:\\"
+MACROOT = "/Volumes/AudioJeff"
+PLATFORM = platform.platform()
+ROOT = WINROOT
+
+if re.search(r'macos', PLATFORM, re.IGNORECASE):
+    ROOT = MACROOT
+
+DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Viola.arco.mono.2444.1")

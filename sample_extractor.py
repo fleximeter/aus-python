@@ -13,19 +13,30 @@ import audiopython.sampler as sampler
 import multiprocessing as mp
 import numpy as np
 import os
+import platform
 import re
 import scipy.signal
 
-WINROOT = "D:"
+# Directory stuff
+WINROOT = "D:\\"
 MACROOT = "/Volumes/AudioJeff"
-ROOT = MACROOT
-DIR = f"{ROOT}/Recording/Samples/Iowa/Viola.arco.mono.2444.1"
+PLATFORM = platform.platform()
+ROOT = WINROOT
+
+if re.search(r'macos', PLATFORM, re.IGNORECASE):
+    ROOT = MACROOT
+
+DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Viola.arco.mono.2444.1")
 CPU_COUNT = mp.cpu_count()
+
+# Basic audio stuff
 SAMPLE_RATE = 44100
 PEAK_VAL = 0.25
 LOWCUT_FREQ = 55
 LOWCUT = True
 LEVEL = -6
+
+# The filter we use to remove DC bias and any annoying low frequency stuff
 filt = scipy.signal.butter(4, LOWCUT_FREQ, 'high', output='sos', fs=SAMPLE_RATE)
 
 

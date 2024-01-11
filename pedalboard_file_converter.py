@@ -4,21 +4,29 @@ A pedalboard-based file converter
 Date: 12/19/23
 """
 
+import audiopython.audiofile as audiofile
 import audiopython.basic_operations as basic_operations
 import os
 import multiprocessing as mp
 import pathlib
 import pedalboard as pb
-import queue
+import platform
 import re
 import scipy.signal
-from audiopython import audiofile
 
-WINROOT = "D:"
+# Directory stuff
+WINROOT = "D:\\"
 MACROOT = "/Volumes/AudioJeff"
+PLATFORM = platform.platform()
 ROOT = WINROOT
-IN_DIR = f"{ROOT}/Recording/Samples/Iowa/TenorTrombone"
-OUT_DIR = f"{ROOT}/Recording/Samples/Iowa/TenorTrombone/process"
+
+if re.search(r'macos', PLATFORM, re.IGNORECASE):
+    ROOT = MACROOT
+
+IN_DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Viola.arco.mono.2444.1")
+OUT_DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Viola.arco.mono.2444.1", "process")
+
+# Basic audio stuff
 LOWCUT_FREQ = 20
 OUT_SAMPLE_RATE = 44100
 OUT_BIT_DEPTH = 24
@@ -27,6 +35,8 @@ NEW_EXTENSION = "wav"
 pathlib.Path(OUT_DIR).mkdir(parents=True, exist_ok=True)
 audio_files = audiofile.find_files(IN_DIR)
 subber = re.compile(r'(\.aif+$)|(\.wav$)')
+
+# The filter we use to remove DC bias and any annoying low frequency stuff
 filt = scipy.signal.butter(8, LOWCUT_FREQ, 'high', output='sos', fs=OUT_SAMPLE_RATE)
 
 

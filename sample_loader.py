@@ -9,12 +9,19 @@ import audiopython.basic_operations as basic_operations
 import audiopython.sampler as sampler
 import sc_data_generator
 import os
+import platform
 import re
 
-WINROOT = "D:"
+# Directory stuff
+WINROOT = "D:\\"
 MACROOT = "/Volumes/AudioJeff"
-ROOT = MACROOT
-DIR = f"{ROOT}/Recording/Samples/Iowa/Viola.arco.mono.2444.1/samples"
+PLATFORM = platform.platform()
+ROOT = WINROOT
+
+if re.search(r'macos', PLATFORM, re.IGNORECASE):
+    ROOT = MACROOT
+
+DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Viola.arco.mono.2444.1")
 
 files = audiofile.find_files(DIR)
 dynamics = {'pppp': -5, 'ppp': -4, 'pp': -3, 'p': -2, 'mp': -1, 'm': 0, 'mf': 1, 'f': 2, 'ff': 3, 'fff': 4, 'ffff': 5}
