@@ -1,7 +1,9 @@
 """
-A pedalboard-based file converter
-
+File: pedalboard_file_converter
 Date: 12/19/23
+
+A pedalboard-based file converter. This is for doing things like changing audio format
+from AIFF to WAV, along with doing cool things like HPF for eliminating DC bias.
 """
 
 import audiopython.audiofile as audiofile

@@ -1,3 +1,9 @@
+"""
+File: granulator_dev.py
+
+This file is for experimenting with granulation.
+"""
+
 import audiopython.audiofile as audiofile
 import audiopython.granulator as granulator
 import audiopython.basic_operations as basic_operations

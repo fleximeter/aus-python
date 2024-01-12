@@ -1,3 +1,9 @@
+"""
+File: dev.py
+
+This file is for experimenting.
+"""
+
 import scipy.fft
 import audiopython.sampler as sampler
 import audiopython.spectrum as spectrum

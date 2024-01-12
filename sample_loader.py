@@ -1,7 +1,10 @@
 """
-A sample loader for SuperCollider
-
+File: sample_loader.py
 Date: 12/28/23
+
+A sample loader for SuperCollider. This program loads samples in a given directory
+and generates a SuperCollider .scd file with information about the sample, including
+loop points and code for loading a Buffer automatically.
 """
 
 import audiopython.audiofile as audiofile
