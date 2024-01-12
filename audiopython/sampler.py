@@ -12,7 +12,7 @@ from audiopython.audiofile import AudioFile, visualize_audio_file, find_files
 import pedalboard as pb
 
 
-class Sample:
+class Sample(AudioFile):
     def __init__(self, audio, sample_rate=44100, path=""):
         """
         Creates a Sample with provided audio
@@ -20,17 +20,13 @@ class Sample:
         :param sample_rate: The sample rate of the audio
         :param path: The path of the audio file
         """
+        super().__init__(frames=audio.shape[-1], duration=audio.shape[-1] / sample_rate, num_channels=1, sample_rate=sample_rate)
         self.samples = audio
-        self.sample_rate = sample_rate
         self.path = path
         if path != "":
             self.file_name = os.path.split(path)[-1]
         else:
             self.file_name = ""
- 
-        self.frames = audio.shape[-1]
-        self.duration = self.frames / self.sample_rate
- 
         self.analysis = {}
         self.dynamic_name = ""
         self.dynamic_id = 0
@@ -296,8 +292,8 @@ def detect_loop_points(audio: AudioFile, channel_index: int = 0, num_periods: in
     if len(amplitude_level_ranges) < 1:
         return []
     else:
-        # discard the amplitude level ranges beyond the first one
-        amplitude_level_ranges = amplitude_level_ranges[0]
+        # combine the amplitude level ranges
+        amplitude_level_range = (amplitude_level_ranges[0][0], amplitude_level_ranges[-1][-1])
 
         # If we are dealing with a fixed (int) file, we need to adjust the effective zero because
         # the samples are integers, not floating point values.
@@ -359,8 +355,8 @@ def detect_loop_points(audio: AudioFile, channel_index: int = 0, num_periods: in
                 #    loop points within the attack or decay portions of the sample)
                 if np.abs(audio.samples[channel_index, loop_points[0]]) < effective_zero \
                     and np.abs(audio.samples[channel_index, loop_points[1]]) < effective_zero:
-                    if loop_points[0] >= amplitude_level_ranges[0] + loop_left_padding \
-                        and loop_points[1] <= amplitude_level_ranges[1] - loop_right_padding:
+                    if loop_points[0] >= amplitude_level_range[0] + loop_left_padding \
+                        and loop_points[1] <= amplitude_level_range[1] - loop_right_padding:
                         frame_tuples.append((loop_points[0], loop_points[1]))
                     break
 
