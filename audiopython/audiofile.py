@@ -365,7 +365,7 @@ def read_wav(file_name: str) -> AudioFile:
             print("BAD RIFF")
         else:
             remaining_size = int.from_bytes(chunk_riff[4:8], byteorder="little", signed=False)
-
+        # print(remaining_size)
         # Now that the file has been read, we continue to read the remaining subchunks.
         # The only remaining subchunk we are interested in is the data subchunk.
         if valid_file:
@@ -374,6 +374,7 @@ def read_wav(file_name: str) -> AudioFile:
                 remaining_size -= CHUNK_HEADER_SIZE
                 subchunk_size = int.from_bytes(subchunk_header[4:8], byteorder="little", signed=False)
                 subchunk_data = audio.read(subchunk_size)
+                print(subchunk_size)
                 remaining_size -= subchunk_size
 
                 # If we've read the FMT chunk

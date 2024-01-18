@@ -22,12 +22,9 @@ import os
 import platform
 import re
 
-WINROOT = "D:\\"
-MACROOT = "/Volumes/AudioJeff"
-PLATFORM = platform.platform()
-ROOT = WINROOT
+print(basic_operations.midicps(65))
+print(basic_operations.midicps(69))
+print(basic_operations.midicps(72))
+print(basic_operations.midicps(76))
 
-if re.search(r'macos', PLATFORM, re.IGNORECASE):
-    ROOT = MACROOT
-
-DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Viola.arco.mono.2444.1")
+audiofile.read_wav("D:\\temp.wav")

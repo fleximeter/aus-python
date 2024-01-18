@@ -159,6 +159,33 @@ def leak_dc_bias(audio: np.array) -> np.array:
         return audio - np.average(audio, axis=audio.ndim-1)
 
 
+def cpsmidi(freq):
+    """
+    Calculates the MIDI note of a provided frequency
+    :param midi_note: The frequency in Hz
+    :return: The MIDI note
+    """
+    return np.log2(freq / 440) * 12 + 69
+
+
+def midicps(midi_note):
+    """
+    Calculates the frequency of a specified midi note
+    :param midi_note: The MIDI note
+    :return: The frequency in Hz
+    """
+    return 440 * 2 ** ((midi_note - 69) / 12)
+
+
+def midiratio(interval):
+    """
+    Calculates the MIDI ratio of a specified midi interval
+    :param midi_note: The MIDI interval in half steps
+    :return: The ratio
+    """
+    return 2 ** (interval / 12)
+
+
 def midi_tuner(audio: np.array, midi_estimation, midi_division=1, sample_rate=44100, target_midi=None) -> np.array:
     """
     Retunes audio from a provided midi estimation to the nearest accurate MIDI note
