@@ -195,48 +195,28 @@ def load_yamaha():
 def read(file_name: str) -> AudioFile:
     """
     Reads an audio file (AIFF or WAV) and returns an AudioFile object containing the contents of the
-    file. This is a wrapper that simply calls read_aiff or read_wav. It is useful if you are reading
-    in a lot of files and some are AIFF and some are WAV.
-    :param file_name: The name of the file
-    :return: An AudioFile
-    """
-    if re.search(r'(\.aif$)|(\.aiff$)', file_name):
-        return read_aiff(file_name)
-    elif re.search(r'\.wav$', file_name):
-        return read_wav(file_name)
-    else:
-        return None
-
-
-def read_with_pedalboard(file_name: str) -> AudioFile:
-    """
-    Reads an audio file (AIFF or WAV) and returns an AudioFile object containing the contents of the
-    file. It uses the Pedalboard library for faster reading and automatic conversion to float.
+    file. It uses pedalboard for speed.
     :param file_name: The name of the file
     :return: An AudioFile
     """
     audio = None
-    samples1 = None            
+    if re.search(r'(\.aif$)|(\.aiff$)', file_name):
+        audio = read_aiff(file_name, True)
+    elif re.search(r'\.wav$', file_name):
+        audio = read_wav(file_name, True)
     with pb.io.AudioFile(file_name, 'r') as infile:
-        samples1 = infile.read(infile.frames)
-        audio = AudioFile(
-            num_channels = infile.num_channels,
-            file_name = file_name,
-            frames = infile.frames,
-            sample_rate = infile.samplerate,
-            duration = infile.frames / infile.samplerate
-        )
-    audio.samples = samples1
+        audio.samples = infile.read(infile.frames)
     return audio
 
 
-def read_aiff(file_name: str) -> AudioFile:
+def read_aiff(file_name: str, header_only=False) -> AudioFile:
     """
     Reads an AIFF file and returns an AudioFile object with the data. Currently this implementation
     supports reading fixed (int) files up to 64-bit. Larger files could be supported, but who would 
     actually need to use them?
 
     :param file_name: The name of the file
+    :param header_only: Whether or not to just read the header of the file and ignore the samples.
     :return: An AudioFile object with the contents of the AIFF file
     """
     audio_file = AudioFile()
@@ -278,7 +258,10 @@ def read_aiff(file_name: str) -> AudioFile:
                 audio_file.sample_rate = _unpack_float80(common_chunk[8:])
                 audio_file.byte_rate = audio_file.sample_rate * audio_file.num_channels * audio_file.bytes_per_sample
                 audio_file.block_align = audio_file.num_channels * audio_file.bytes_per_sample
-                
+                audio_file.duration = audio_file.frames / audio_file.sample_rate
+                if header_only:
+                    eof = True
+
             # read the samples
             elif chunk_title == HEADER4:
                 # This adjustment is necessary because I've encountered a file that has a subchunk size
@@ -307,8 +290,6 @@ def read_aiff(file_name: str) -> AudioFile:
                         audio_file.samples[j, k] = int.from_bytes(data[start_point:start_point+audio_file.bytes_per_sample], byteorder="big", signed=True)
                     k += 1
 
-                audio_file.duration = audio_file.frames / audio_file.sample_rate
-
             # Otherwise it's a chunk that we aren't concerned with, so we will discard it.
             else:
                 audio.read(chunk_size)
@@ -320,7 +301,7 @@ def read_aiff(file_name: str) -> AudioFile:
         raise RuntimeWarning(f"The AIFF file {file_name} was unusually formatted and could not be read.")
 
 
-def read_wav(file_name: str) -> AudioFile:
+def read_wav(file_name: str, header_only=False) -> AudioFile:
     """
     Reads a WAV file and returns an AudioFile object with the data. Currently this implementation
     supports reading fixed (int) files up to 32-bit and float files up to 64-bit. Larger files could
@@ -340,6 +321,7 @@ def read_wav(file_name: str) -> AudioFile:
     Finally, at this time, this implementation can only read RIFF, not RF64, WAV files.
 
     :param file_name: The name of the file
+    :param header_only: Whether or not to just read the header of the file and ignore the samples.
     :return: An AudioFile object with the contents of the WAV file
     """
     audio_file = AudioFile()
@@ -398,7 +380,12 @@ def read_wav(file_name: str) -> AudioFile:
                 # (e.g. a JUNK subchunk), we ignore it.
                 elif subchunk_header[:4] == DATA_CHUNK_1:
                     audio_file.frames = subchunk_size // (audio_file.num_channels * audio_file.bytes_per_sample)
-                    
+                    audio_file.duration = audio_file.frames / audio_file.sample_rate
+
+                    if header_only:
+                        remaining_size = 0
+                        break
+
                     # This adjustment is necessary because I've encountered a file that has a subchunk size
                     # 1 byte too big.
                     subchunk_size = min(subchunk_size, audio_file.frames * audio_file.block_align)
@@ -437,8 +424,6 @@ def read_wav(file_name: str) -> AudioFile:
                                     subchunk_data[i + k * audio_file.bytes_per_sample : i + k * audio_file.bytes_per_sample + audio_file.bytes_per_sample]
                                 )[0]
                             j += 1  # move to next frame
-
-                    audio_file.duration = audio_file.frames / audio_file.sample_rate
 
     # If the WAV file was formatted unusually (for example, not in PCM or float), we return nothing
     # and raise a warning.

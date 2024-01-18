@@ -27,4 +27,9 @@ print(basic_operations.midicps(69))
 print(basic_operations.midicps(72))
 print(basic_operations.midicps(76))
 
-audiofile.read_wav("D:\\temp.wav")
+x = audiofile.read("D:\\NoiseMaker.wav")
+x.num_channels = 1
+x.samples = basic_operations.force_equal_energy(x.samples, -12, 8192)
+x.samples = basic_operations.fade_in(x.samples, duration=8192)
+x.samples = basic_operations.fade_out(x.samples, duration=8192)
+audiofile.write_with_pedalboard(x, "D:\\NoiseMaker1.wav")
