@@ -143,6 +143,35 @@ def fade_out(audio: np.array, envelope="hanning", duration=100) -> np.array:
     envelope = np.hstack((np.ones((audio.shape[-1] - envelope.shape[-1])), envelope))
     
     return audio * envelope
+
+
+def force_equal_energy(audio: np.array, dbfs: -6.0, window_size: 1024):
+    """
+    Forces equal energy on a mono signal over time. For example, if a signal initially has high energy, 
+    and gets less energetic, this will adjust the energy level so that it does not decrease.
+    :param audio: The array of audio samples
+    :param dbfs: The target level of the entire signal, in dbfs
+    :param window_size: The window size to consider when detecting RMS energy
+    :return: An adjusted version of the signal
+    """
+    audio_new = audio.copy()  # the new array we'll be returning
+    level_float = 10 ** (dbfs / 20)  # the target level, in float rather than dbfs
+    num_frames = np.ceil(audio.shape[-1] / window_size)  # the number of frames that we'll be analyzing
+    energy_levels = np.empty((num_frames)) + 2  # the energy level for each frame
+    
+    # find the energy levels
+    for i in range(0, audio.shape[-1], window_size):
+        energy_levels[i+1] = np.sqrt(np.average(np.square(audio[i:i+window_size])))
+    energy_levels[0] = energy_levels[1]
+    energy_levels[-1] = energy_levels[-2]
+
+    frame_idx = 1
+    for i in range(window_size // 2, audio.shape[-1], window_size):
+        for j in range(i, i + window_size):
+            audio_new[j] = (level_float / (((energy_levels[frame_idx + 1] - energy_levels[frame_idx]) / window_size) * (j - i) + energy_levels[frame_idx])) * audio[j]
+        frame_idx += 1
+
+    # level_float - energy_levels[frame_idx] to level_float - energy_levels[frame_idx + 1]
     
 
 def leak_dc_bias(audio: np.array) -> np.array:
