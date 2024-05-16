@@ -27,8 +27,8 @@ if re.search(r'macos', PLATFORM, re.IGNORECASE):
     ROOT = MACROOT
 
 # This stuff needs to be set manually. Set the directory location and the sample dynamic level to use.
-DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Xylophone.hardrubber")
-DYNAMIC = "mf"
+DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Xylophone.rosewood")
+DYNAMIC = "ff"
 
 # multiprocessing stuff
 CPU_COUNT = mp.cpu_count()
@@ -38,7 +38,7 @@ PEAK_VAL = 0.25
 SAMPLE_RATE = 44100
 LOWCUT_FREQ = 55
 LOWCUT = True
-MIN_SAMPLE_LENGTH = 500
+MIN_SAMPLE_LENGTH = 11000
 
 # The filter we use to remove DC bias and any annoying low frequency stuff
 filt = scipy.signal.butter(4, LOWCUT_FREQ, 'high', output='sos', fs=SAMPLE_RATE)
@@ -53,21 +53,19 @@ def extract_samples(audio_files, destination_directory):
     for file in audio_files:
         short_name = re.sub(r'(\.wav$)|(\.aif+$)', '', os.path.split(file)[-1], re.IGNORECASE)
         
-        # Read the audio file
+        # Read the audio file and force it to the right number of dimensions
         audio = audiofile.read(file)
         audio.samples = basic_operations.mix_if_not_mono(audio.samples, 2)
-        audio.bits_per_sample = 24
         audio.num_channels = 1
-
+        
         # Perform preprocessing
         if LOWCUT:
             audio.samples = scipy.signal.sosfilt(filt, audio.samples)
-        audio.samples = basic_operations.leak_dc_bias_averager(audio.samples)
-
+        
         # Extract the samples. You may need to tweak some settings here to optimize sample extraction.
-        amplitude_regions = sampler.identify_amplitude_regions(audio, 0.02, num_consecutive=MIN_SAMPLE_LENGTH)
-        samples = sampler.extract_samples(audio, amplitude_regions, 500, 50000, 
-                                                    pre_envelope_frames=500, post_envelope_frames=500)
+        amplitude_regions = sampler.identify_amplitude_regions(audio=audio, level_delimiter=-36, num_consecutive=MIN_SAMPLE_LENGTH)
+        samples = sampler.extract_samples(audio=audio, amplitude_regions=amplitude_regions, pre_frames_to_include=500, 
+                                          post_frames_to_include=11000, pre_envelope_frames=500, post_envelope_frames=500)
         
         # Perform postprocessing, including scaling dynamic level and tuning
         for i, sample in enumerate(samples):

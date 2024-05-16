@@ -27,7 +27,7 @@ ROOT = WINROOT
 if re.search(r'macos', PLATFORM, re.IGNORECASE):
     ROOT = MACROOT
 
-DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Xylophone.hardrubber")
+DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Xylophone.rosewood")
 
 
 if __name__ == "__main__":
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     destination_directory = os.path.join(DIR, "samples")
     os.makedirs(destination_directory, 511, True)
 
-    with open("config/process.xylophone.hardrubber.mf.json", "r") as f:
+    with open("config/process.xylophone.rosewood.ff.json", "r") as f:
         data = json.loads(f.read())
         for file in data:
             with pedalboard.io.AudioFile(file["file"], "r") as a:

@@ -122,7 +122,7 @@ def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_inc
     return samples
 
 
-def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = 0.01, scale_level_delimiter: bool = True, 
+def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = -30, scale_level_delimiter: bool = True, 
                                num_consecutive: int = 10, channel_index: int = 0) -> list:
     """
     Identifies amplitude regions in a sound. You provide a threshold, and any time the threshold is
@@ -130,7 +130,7 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = 0.01, 
     useful for pulling out individual samples from a file that has multiple samples in it.
 
     :param audio: An AudioFile object
-    :param level_delimiter: The lowest level allowed in a region. This will be scaled by the maximum amplitude
+    :param level_delimiter: The lowest level (dBFS) allowed in a region. This will be scaled by the maximum amplitude
     in the audio file channel that is being analyzed, unless that feature is turned off by the next parameter. 
     :param scale_level_delimiter: Whether or not to scale the level delimiter by the maximum amplitude in
     the audio file channel that is being analyzed
@@ -149,14 +149,11 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = 0.01, 
     if audio.frames > 0:
         # Scale the level delimiter by the maximum amplitude in the audio file
         if scale_level_delimiter:
-            maxval = np.max(np.abs(audio.samples[channel_index, :]))
-            if audio.samples.dtype == np.int16 or audio.samples.dtype == np.int32 or audio.samples.dtype == np.int64:
-                level_delimiter = round(level_delimiter * maxval)
-            elif audio.samples.dtype == np.float16 or audio.samples.dtype == np.float32 or audio.samples.dtype == np.float64:
-                level_delimiter *= maxval
+            maxval = 20 * np.log10(np.max(np.abs(audio.samples[channel_index, :])))
+            level_delimiter = maxval + level_delimiter
         
         for i in range(audio.frames):
-            if np.abs(audio.samples[channel_index, i]) >= level_delimiter:
+            if 20 * np.log10(np.abs(audio.samples[channel_index, i])) >= level_delimiter:
                 last_above_threshold = i
                 num_below_threshold = 0
                 if current_region is None:
