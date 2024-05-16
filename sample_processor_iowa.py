@@ -6,6 +6,8 @@ Date: 12/22/23
 This file loads all samples files within a directory and its subdirectories,
 and processes them. It is useful for performing postprocessing after sample extraction,
 for naming samples properly and for applying some filtering and tuning.
+
+It is customized for working with University of Iowa EMS samples.
 """
 
 import audiopython.analysis as analysis

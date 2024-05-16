@@ -1,10 +1,11 @@
 """
-File: sample_extractor_tuner.py
+File: sample_extractor_tuner_iowa.py
 Author: Jeff Martin
 Date: 12/22/23
 
 This file loads all audio files with a directory and its subdirectories,
 and extracts individual samples from them. It also tunes samples to the nearest MIDI note.
+This program is customized for the samples recorded by the University of Iowa EMS.
 
 The idea behind the sample extraction process is that you identify regions in the audio file
 where the levels are consistently above a certain dBFS threshold.
@@ -38,26 +39,23 @@ if re.search(r'macos', PLATFORM, re.IGNORECASE):
 ###################################################################################################
 # !! THINGS THAT MUST BE MANUALLY SET EACH TIME YOU RUN THIS PROGRAM !!
 ###################################################################################################
+DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Xylophone.rosewood")
+DYNAMIC = "ff"  # This is something specific to Iowa samples
 
-# 1. The sample directory. All samples in this folder and its subfolders will be loaded and processed.
-DIR = os.path.join(ROOT, "Recording", "Samples")
-
-# 2. The output directory. It will be created if it does not exist.
-OUTDIR = os.path.join(ROOT, "Recording", "Samples", "samples")
-
-# 3. The minimum number of frames in a sample. The sample will actually be a bit longer; 
+# 1. The minimum number of frames in a sample. The sample will actually be a bit longer; 
 # among other things, it will include the POST_FRAMES_TO_INCLUDE.
 MIN_SAMPLE_LENGTH = 11000
 
-# 4. The level at which a sample begins or ends. When the levels rise above here, we have another sample.
+# 2. The level at which a sample begins or ends. When the levels rise above here, we have another sample.
 SAMPLE_LEVEL_DBFS_DELIMITER = -36  
 
-# 5. The number of frames that will be included at the end of the sample. This helps to catch the tail
+# 3. The number of frames that will be included at the end of the sample. This helps to catch the tail
 # as it fades away. If this is too long, we might catch part of the next sample.
-POST_FRAMES_TO_INCLUDE = 11000     
+POST_FRAMES_TO_INCLUDE = 11000
 
-# 6. If you want to automatically tune the sample, set this to True.
+# 4. If you want to automatically tune the sample, set this to True.
 AUTOTUNE_SAMPLE = True
+
 
 ###################################################################################################
 # THINGS YOU SHOULD GENERALLY LEAVE ALONE
@@ -81,7 +79,6 @@ def extract_samples(audio_files, destination_directory):
     :param destination_directory: The destination sample directory
     """
     for file in audio_files:
-        # Get the file name, without its extension
         short_name = re.sub(r'(\.wav$)|(\.aif+$)', '', os.path.split(file)[-1], re.IGNORECASE)
         
         # Read the audio file and force it to the right number of dimensions
@@ -117,22 +114,30 @@ def extract_samples(audio_files, destination_directory):
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    os.makedirs(OUTDIR, 511, True)
+    destination_directory = os.path.join(DIR, "samples")
+    os.makedirs(destination_directory, 511, True)
 
     files = audiofile.find_files(DIR)
+    files2 = []
+    # A basic file filter. We exclude samples that have already been created, because
+    # they have "sample." in the file name. We also are targeting samples of a specific
+    # dynamic level here.
+    for file in files:
+        if re.search(DYNAMIC, file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
+            files2.append(file)
     
     # Distribute the audio files among the different processes. This is a good way to do it
     # because we assume that some files will be harder to process, and those will probably
     # be adjacent to each other in the folder, so we don't want to take blocks of files;
     # we want to distribute them individually.
     file_groups = [[] for i in range(CPU_COUNT)]
-    for i, file in enumerate(files):
+    for i, file in enumerate(files2):
         file_groups[i % CPU_COUNT].append(file)
 
     # Start the processes
     processes = []
     for i in range(CPU_COUNT):
-        processes.append(mp.Process(target=extract_samples, args=(file_groups[i], OUTDIR)))
+        processes.append(mp.Process(target=extract_samples, args=(file_groups[i], destination_directory)))
         processes[-1].start()
     
     # Collect the processes
