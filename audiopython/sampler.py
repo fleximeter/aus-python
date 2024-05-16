@@ -30,7 +30,7 @@ class Sample(AudioFile):
         self.analysis = {}
         self.dynamic_name = ""
         self.dynamic_id = 0
-        self.instrument_type = ""
+        self.instrument_name = ""
         self.midi = 0
         self.pitched = True
         self.string_name = ""
@@ -377,9 +377,9 @@ def load_samples(directory) -> list:
             sample = Sample(np.reshape(audio, (audio.size)), a.samplerate, file)
             name_data = os.path.split(file)[-1].split('.')
             sample.midi = int(name_data[1])
-            sample.instrument_type = name_data[2]
+            sample.instrument_name = name_data[2]
             sample.dynamic_name = name_data[5]
-            sample.dynamic_id = 3
             sample.pitched = True
+            sample.string_name = name_data[4][-1]
             samples.append(sample)
     return samples

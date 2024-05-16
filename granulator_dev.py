@@ -47,7 +47,7 @@ for i in range(NUM_GRAINS):
     grain = granulator.extract_grain(samples[j].samples, start_frame, grain_size, max_window_size=GRAIN_SIZE_MIN)
     grain1 = sampler.Sample(grain, samples[j].sample_rate, samples[j].path)
     grain1.midi = samples[j].midi
-    grain1.instrument_type = samples[j].instrument_type
+    grain1.instrument_name = samples[j].instrument_type
     grain1.dynamic_name = samples[j].dynamic_name
     grain1.dynamic_id = samples[j].dynamic_id
     grain1.pitched = samples[j].pitched

@@ -71,7 +71,7 @@ def file_processor(data_queue, files):
         sample.string_id = STRINGS[sample.string_name]
         sample.dynamic_name = filename_components[5]
         sample.dynamic_id = DYNAMICS[sample.dynamic_name]
-        sample.instrument_type = filename_components[2].lower()
+        sample.instrument_name = filename_components[2].lower()
         sample.midi = filename_components[1]
         path = re.sub(r'\\', '/', sample.path)
         sample_dict = {
@@ -81,7 +81,7 @@ def file_processor(data_queue, files):
             "pitched": sample.pitched,
             "dynamic_name": sample.dynamic_name,
             "dynamic_id": sample.dynamic_id,
-            "instrument_type": sample.instrument_type,
+            "instrument_type": sample.instrument_name,
             "path": path,
             "string_name": sample.string_name,
             "string_id": sample.string_id,

@@ -58,7 +58,7 @@ def extract_samples(audio_files, destination_directory):
         # Perform preprocessing
         if LOWCUT:
             audio.samples = scipy.signal.sosfilt(filt, audio.samples)
-        audio.samples = basic_operations.leak_dc_bias(audio.samples)
+        audio.samples = basic_operations.leak_dc_bias_averager(audio.samples)
 
         # Extract the samples. You may need to tweak some settings here to optimize sample extraction.
         amplitude_regions = sampler.identify_amplitude_regions(audio, 0.02, num_consecutive=22000)
@@ -67,7 +67,7 @@ def extract_samples(audio_files, destination_directory):
         
         # Perform postprocessing, including scaling dynamic level and tuning
         for i, sample in enumerate(samples):
-            sample.samples = basic_operations.leak_dc_bias(sample.samples)
+            sample.samples = basic_operations.leak_dc_bias_averager(sample.samples)
             current_peak = np.max(np.abs(sample.samples))
             sample.samples *= PEAK_VAL / current_peak
             midi = analysis.midi_estimation_from_pitch(analysis.pitch_estimation(basic_operations.mix_if_not_mono(

@@ -4,7 +4,7 @@ File: dev.py
 This file is for experimenting.
 """
 
-import scipy.fft
+import scipy.fft as sfft
 import audiopython.sampler as sampler
 import audiopython.spectrum as spectrum
 import audiopython.audiofile as audiofile
@@ -21,15 +21,13 @@ import sc_data_generator
 import os
 import platform
 import re
+import fft
 
-print(basic_operations.midicps(65))
-print(basic_operations.midicps(69))
-print(basic_operations.midicps(72))
-print(basic_operations.midicps(76))
+x = audiofile.read("D:\\Recording\\grains.wav")
+X1 = fft.dft(x.samples[0, 8192:8192+512])
+X2 = fft.fft(x.samples[0, 8192:8192+512], 512, 2)
+X3 = sfft.fft(x.samples[0, 8192:8192+512])
 
-x = audiofile.read("D:\\NoiseMaker.wav")
-x.num_channels = 1
-x.samples = basic_operations.force_equal_energy(x.samples, -12, 8192)
-x.samples = basic_operations.fade_in(x.samples, duration=8192)
-x.samples = basic_operations.fade_out(x.samples, duration=8192)
-audiofile.write_with_pedalboard(x, "D:\\NoiseMaker1.wav")
+print(X1[:5])
+print(X2[:5])
+print(X3[:5])

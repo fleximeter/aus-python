@@ -56,11 +56,14 @@ def dbfs_max_local(audio: np.array, chunk_size=10, hop_size=5):
     :return: The max local dbfs
     """
     dbfs = -np.inf
-    for i in range(0, len(audio), hop_size):
-        end = min(i + chunk_size, len(audio) - 1)
+    for i in range(0, audio.size, hop_size):
+        end = min(i + chunk_size, audio.size - 1)
         try:
-            rms = np.sqrt(np.average(np.square(audio[i:end]), -1))
-            dbfs = max(20 * np.log10(np.abs(rms)), dbfs)
+            if chunk_size > 1:
+                rms = np.sqrt(np.average(np.square(audio[i:end]), -1))
+                dbfs = max(20 * np.log10(np.abs(rms)), dbfs)
+            else:
+                dbfs = max(20 * np.log10(np.abs(audio[i])), dbfs)
         except RuntimeWarning:
             pass
     return dbfs
@@ -145,7 +148,7 @@ def fade_out(audio: np.array, envelope="hanning", duration=100) -> np.array:
     return audio * envelope
 
 
-def force_equal_energy(audio: np.array, dbfs: -6.0, window_size=8192):
+def force_equal_energy(audio: np.array, dbfs=-6.0, window_size=8192):
     """
     Forces equal energy on a mono signal over time. For example, if a signal initially has high energy, 
     and gets less energetic, this will adjust the energy level so that it does not decrease.
@@ -188,7 +191,7 @@ def force_equal_energy(audio: np.array, dbfs: -6.0, window_size=8192):
     return audio_new * level_float / audio_max
     
 
-def leak_dc_bias(audio: np.array) -> np.array:
+def leak_dc_bias_averager(audio: np.array) -> np.array:
     """
     Leaks DC bias of an audio signal
     :param audio: The audio signal
@@ -200,6 +203,31 @@ def leak_dc_bias(audio: np.array) -> np.array:
         return audio - np.repeat(avg, audio.shape[-1], audio.ndim-1)
     else:
         return audio - np.average(audio, axis=audio.ndim-1)
+
+
+def leak_dc_bias_filter(audio: np.array) -> np.array:
+    """
+    Leaks DC bias of an audio signal using a highpass filter, described on pp. 762-763
+    of "Understanding Digital Signal Processing," 3rd edition, by Richard G. Lyons
+    :param audio: The audio signal
+    :return: The bias-free signal
+    """
+    ALPHA = 0.95
+    new_signal = np.zeros(audio.shape)
+    if audio.ndim == 1:
+        delay_register = 0
+        for i in range(audio.shape[-1]):
+            combined_signal = audio[i] + ALPHA * delay_register
+            new_signal[i] = combined_signal - delay_register
+            delay_register = combined_signal
+    elif audio.ndim == 2:
+        for j in range(audio.shape[-2]):
+            delay_register = 0
+            for i in range(audio.shape[-1]):
+                combined_signal = audio[j, i] + ALPHA * delay_register
+                new_signal[j, i] = combined_signal - delay_register
+                delay_register = combined_signal
+    return new_signal
 
 
 def cpsmidi(freq):
