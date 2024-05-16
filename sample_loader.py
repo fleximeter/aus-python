@@ -25,11 +25,11 @@ ROOT = WINROOT
 if re.search(r'macos', PLATFORM, re.IGNORECASE):
     ROOT = MACROOT
 
-DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Viola.arco.mono.2444.1", "samples")
+DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Xylophone.hardrubber", "samples")
 CPU_COUNT = mp.cpu_count()
 
 # stuff related to this specific extraction; will need to be customized
-INSTRUMENT_DICT = "viola.arco"
+INSTRUMENT_DICT = "xylophone.hardrubber"
 DYNAMICS = {'pppp': -5, 'ppp': -4, 'pp': -3, 'p': -2, 'mp': -1, 'm': 0, 'mf': 1, 'f': 2, 'ff': 3, 'fff': 4, 'ffff': 5}
 STRINGS = {'C': 0, 'G': 1, 'D': 2, 'A': 3}
 

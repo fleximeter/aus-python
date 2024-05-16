@@ -275,17 +275,22 @@ def midi_tuner(audio: np.array, midi_estimation, midi_division=1, sample_rate=44
     return librosa.resample(audio, orig_sr=new_sr, target_sr=sample_rate, res_type="soxr_vhq")
 
 
-def mix_if_not_mono(audio: np.array) -> np.array:
+def mix_if_not_mono(audio: np.array, ndim=1) -> np.array:
     """
     Mixes a signal to a mono signal (if it isn't mono already). 
     If the amplitude is greater than 1, applies gain reduction to bring the amplitude down to 1.
     :param audio: The audio to mix if it isn't mono
+    :param ndim: Whether or not to reshape the array to 1 dimension
     :return: The mixed audio
     """
     if audio.ndim > 1:
         mix = np.sum(audio, -2)
-        mix = np.reshape(mix, (mix.shape[-1]))
+        if ndim == 2:
+            mix = np.reshape(mix, (1, mix.size))
         mix /= audio.shape[-2]
+        return mix
+    elif audio.ndim == 1 and ndim == 2:
+        mix = np.reshape(mix, (1, mix.shape[-1]))
         return mix
     else:
         return audio

@@ -7,7 +7,6 @@ This file loads all audio files with a directory and its subdirectories,
 and extracts individual samples from them. It also tunes samples to the nearest MIDI note.
 """
 
-import audio_files
 import audiopython.analysis as analysis
 import audiopython.audiofile as audiofile
 import audiopython.basic_operations as basic_operations
@@ -19,16 +18,19 @@ import platform
 import re
 import scipy.signal
 
-# Directory stuff
+# Directory roots. We automatically detect if we're on Windows or Mac.
 WINROOT = "D:\\"
 MACROOT = "/Volumes/AudioJeff"
 PLATFORM = platform.platform()
 ROOT = WINROOT
-
 if re.search(r'macos', PLATFORM, re.IGNORECASE):
     ROOT = MACROOT
 
-DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Viola.arco.mono.2444.1")
+# This stuff needs to be set manually. Set the directory location and the sample dynamic level to use.
+DIR = os.path.join(ROOT, "Recording", "Samples", "Iowa", "Xylophone.hardrubber")
+DYNAMIC = "mf"
+
+# multiprocessing stuff
 CPU_COUNT = mp.cpu_count()
 
 # Basic audio stuff
@@ -36,6 +38,7 @@ PEAK_VAL = 0.25
 SAMPLE_RATE = 44100
 LOWCUT_FREQ = 55
 LOWCUT = True
+MIN_SAMPLE_LENGTH = 500
 
 # The filter we use to remove DC bias and any annoying low frequency stuff
 filt = scipy.signal.butter(4, LOWCUT_FREQ, 'high', output='sos', fs=SAMPLE_RATE)
@@ -51,7 +54,8 @@ def extract_samples(audio_files, destination_directory):
         short_name = re.sub(r'(\.wav$)|(\.aif+$)', '', os.path.split(file)[-1], re.IGNORECASE)
         
         # Read the audio file
-        audio = audiofile.read_with_pedalboard(file)
+        audio = audiofile.read(file)
+        audio.samples = basic_operations.mix_if_not_mono(audio.samples, 2)
         audio.bits_per_sample = 24
         audio.num_channels = 1
 
@@ -61,7 +65,7 @@ def extract_samples(audio_files, destination_directory):
         audio.samples = basic_operations.leak_dc_bias_averager(audio.samples)
 
         # Extract the samples. You may need to tweak some settings here to optimize sample extraction.
-        amplitude_regions = sampler.identify_amplitude_regions(audio, 0.02, num_consecutive=22000)
+        amplitude_regions = sampler.identify_amplitude_regions(audio, 0.02, num_consecutive=MIN_SAMPLE_LENGTH)
         samples = sampler.extract_samples(audio, amplitude_regions, 500, 50000, 
                                                     pre_envelope_frames=500, post_envelope_frames=500)
         
@@ -83,17 +87,16 @@ def extract_samples(audio_files, destination_directory):
 
 if __name__ == "__main__":
     print("Starting sample extractor...")
-    destination_directory = os.path.join(audio_files._VIOLA_SAMPLES_DIR, "samples")
+    destination_directory = os.path.join(DIR, "samples")
     os.makedirs(destination_directory, 511, True)
 
-    # files = audiofile.find_files(audio_files._VIOLA_SAMPLES_DIR)
-    files = audio_files.viola_samples
+    files = audiofile.find_files(DIR)
     files2 = []
     # A basic file filter. We exclude samples that have already been created, because
     # they have "sample." in the file name. We also are targeting samples of a specific
     # dynamic level here.
     for file in files:
-        if re.search(r'mf', file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
+        if re.search(DYNAMIC, file, re.IGNORECASE) and not re.search(r'sample\.', file, re.IGNORECASE):
             files2.append(file)
     
     # Distribute the audio files among the different processes. This is a good way to do it
