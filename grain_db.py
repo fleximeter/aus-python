@@ -6,11 +6,47 @@ Description: Extracts grains from audio files, and records the frames and an ana
 
 import os
 import sqlite3
+import audiopython.audiofile as audiofile
 import audiopython.granulator as granulator
 import audiopython.sampler as sampler
 import audiopython.analysis as analysis
 import audiopython.basic_operations as basic_operations
+import numpy as np
 import random
+
+
+def analyze_grains(grains):
+    """
+    Analyzes grains and prepares for storage in the database
+    :param grains: The grains to analyze
+    :return: The analysis of the grains
+    """
+    analyses = []
+    for grain in grains:
+        a = audiofile.read(grain[1])
+        g = granulator.extract_grain(np.reshape(a.samples, (a.samples.size)), grain[2], grain[3] - grain[2], max_window_size=512)
+        ax = analysis.analyzer(g, a.sample_rate)
+        analyses.append((
+            grain[0],
+            ax["dbfs"],
+            ax["energy"],
+            ax["pitch"],
+            ax["midi"],
+            ax["spectral_centroid"],
+            ax["spectral_entropy"],
+            ax["spectral_flatness"],
+            ax["spectral_slope"][0],
+            ax["spectral_slope"][1],
+            ax["spectral_variance"],
+            ax["spectral_skewness"],
+            ax["spectral_kurtosis"],
+            ax["spectral_roll_off_0.5"],
+            ax["spectral_roll_off_0.75"],
+            ax["spectral_roll_off_0.9"],
+            ax["spectral_roll_off_0.95"],
+            ax["zero_crossing_rate"],
+            ))
+    return analyses
 
 
 def connect_to_db(path, schema_path):
@@ -120,7 +156,18 @@ def retrieve_grains(db, cursor, analyzed=None):
             LEFT JOIN analysis ON grains.id = analysis.grain_id 
             WHERE analysis.grain_id IS NULL;
             """
-    cursor.executemany(SQL, grains)
+    return cursor.execute(SQL)
+
+
+def store_analyses(analyses, db, cursor):
+    """
+    Stores analyses in the database
+    :param analyses: A list of grain analyses
+    :param db: A connection to a SQLite database
+    :param cursor: The cursor for executing SQL
+    """
+    SQL = "INSERT INTO analysis VALUES(NULL, " + "?, " * 17 + "?)"
+    cursor.executemany(SQL, analyses)
     db.commit()
 
 
@@ -142,6 +189,9 @@ if __name__ == "__main__":
     DB_SCHEMA = "schema.sql"
     db, cursor = connect_to_db(DB_FILE, DB_SCHEMA)
     SAMPLE_DIR = "D:\\Recording\\Samples\\Iowa\\Viola.arco.mono.2444.1\\samples"
-    grains = extract_random_grains(SAMPLE_DIR, 5, 8192, -30, "string")
-    store_grains(grains, db, cursor)
+    # grains = extract_random_grains(SAMPLE_DIR, 5, 8192, -30, "string")
+    # store_grains(grains, db, cursor)
+    a = retrieve_grains(db, cursor, False)
+    ax = analyze_grains(a)
+    store_analyses(ax, db, cursor)
     db.close()

@@ -33,6 +33,7 @@ def analyzer(audio, sample_rate, frequency_quantile=0.5):
     results['pitch'] = pitch_estimation(audio, sample_rate, 27.5, 3520, frequency_quantile)
     results['midi'] = midi_estimation_from_pitch(results['pitch'])
     results['spectral_centroid'] = spectral_centroid(magnitude_spectrum, rfftfreqs)
+    results['spectral_entropy'] = spectral_entropy(magnitude_spectrum)
     results['spectral_flatness'] = spectral_flatness(magnitude_spectrum)
     results['spectral_slope'] = spectral_slope(magnitude_spectrum, rfftfreqs)
     results['spectral_roll_off_0.5'] = spectral_roll_off_point(magnitude_spectrum, rfftfreqs, 0.5)

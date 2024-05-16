@@ -356,7 +356,6 @@ def read_wav(file_name: str, header_only=False) -> AudioFile:
                 remaining_size -= CHUNK_HEADER_SIZE
                 subchunk_size = int.from_bytes(subchunk_header[4:8], byteorder="little", signed=False)
                 subchunk_data = audio.read(subchunk_size)
-                print(subchunk_size)
                 remaining_size -= subchunk_size
 
                 # If we've read the FMT chunk

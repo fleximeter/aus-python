@@ -26,6 +26,7 @@ CREATE TABLE analysis (
     spectral_entropy REAL,            -- The spectral entropy
     spectral_flatness REAL,           -- The spectral flatness
     spectral_slope REAL,              -- The spectral slope
+    spectral_y_int REAL,              -- The spectral y intersection
     spectral_variance REAL,           -- The spectral variance
     spectral_skewness REAL,           -- The spectral skewness
     spectral_kurtosis REAL,           -- The spectral kurtosis
