@@ -37,7 +37,7 @@ NUM_GRAINS = 20000
 GRAIN_SIZE_MIN = 1000
 GRAIN_SIZE_MAX = 10000
 
-samples = sampler.load_samples(DIR)
+samples = sampler.load_samples_iowa(DIR)
 grains = []
 
 for i in range(NUM_GRAINS):

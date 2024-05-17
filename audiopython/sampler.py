@@ -28,13 +28,13 @@ class Sample(AudioFile):
         else:
             self.file_name = ""
         self.analysis = {}
-        self.dynamic_name = ""
-        self.dynamic_id = 0
-        self.instrument_name = ""
-        self.midi = 0
-        self.pitched = True
-        self.string_name = ""
-        self.string_id = 0
+        self.dynamic_name = None
+        self.dynamic_id = None
+        self.instrument_name = None
+        self.midi = None
+        self.pitched = False
+        self.string_name = None
+        self.string_id = None
 
 
 def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_include: int = 0, 
@@ -360,10 +360,12 @@ def detect_loop_points(audio: AudioFile, channel_index: int = 0, num_periods: in
         return frame_tuples
 
 
-def load_samples(directory) -> list:
+def load_samples(directory, iowa=False) -> list:
     """
     Loads preprocessed samples from a directory, and returns them as a list of Samples
     :param directory: The directory to search
+    :param iowa: Whether or not to add additional information from the file name for 
+    Iowa EMS samples
     :return: A list of Samples
     """
     samples = []
@@ -372,11 +374,12 @@ def load_samples(directory) -> list:
         with pb.io.AudioFile(file, "r") as a:
             audio = a.read(a.frames)
             sample = Sample(np.reshape(audio, (audio.size)), a.samplerate, file)
-            name_data = os.path.split(file)[-1].split('.')
-            sample.midi = int(name_data[1])
-            sample.instrument_name = name_data[2]
-            sample.dynamic_name = name_data[5]
-            sample.pitched = True
-            sample.string_name = name_data[4][-1]
+            if iowa:
+                name_data = os.path.split(file)[-1].split('.')
+                sample.midi = int(name_data[1])
+                sample.instrument_name = name_data[2]
+                sample.dynamic_name = name_data[5]
+                sample.pitched = True
+                sample.string_name = name_data[4][-1]
             samples.append(sample)
     return samples
