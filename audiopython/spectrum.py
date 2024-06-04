@@ -9,7 +9,7 @@ This file contains functionality for spectral analysis.
 import scipy.fft
 import numpy as np
 import matplotlib.pyplot as plt
-from audiopython.audiofile import AudioFile
+from . import audiofile
 
 
 def fft_data_decompose(fft_data):
@@ -47,7 +47,7 @@ def fft_freqs(window_size: int = 1024, sample_rate: int = 44100) -> np.array:
     return scipy.fft.rfftfreq(window_size, 1 / sample_rate)
 
 
-def plot_fft_data(file: AudioFile, channel: int = 0, frames=None, window_size: int = 1024):
+def plot_fft_data(file: audiofile.AudioFile, channel: int = 0, frames=None, window_size: int = 1024):
     """
     Plots FFT data
     :param file: An AudioFile

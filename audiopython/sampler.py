@@ -8,11 +8,11 @@ This file contains functionality for processing audio files for use with sampler
 
 import os
 import numpy as np
-from audiopython.audiofile import AudioFile, visualize_audio_file, find_files
+from . import audiofile
 import pedalboard as pb
 
 
-class Sample(AudioFile):
+class Sample(audiofile.AudioFile):
     def __init__(self, audio, sample_rate=44100, path=""):
         """
         Creates a Sample with provided audio
@@ -37,7 +37,7 @@ class Sample(AudioFile):
         self.string_id = None
 
 
-def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_include: int = 0, 
+def extract_samples(audio: audiofile.AudioFile, amplitude_regions: list, pre_frames_to_include: int = 0, 
                     post_frames_to_include: int = 0, pre_envelope_type="hanning", pre_envelope_frames: int = 20,
                     post_envelope_type="hanning", post_envelope_frames: int = 20) -> list:
     """
@@ -74,7 +74,7 @@ def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_inc
 
     # Create the samples
     for sample in amplitude_regions:
-        new_audio_file = AudioFile(
+        new_audio_file = audiofile.AudioFile(
             audio_format=audio.audio_format,
             bits_per_sample=audio.bits_per_sample,
             block_align=audio.block_align,
@@ -122,7 +122,7 @@ def extract_samples(audio: AudioFile, amplitude_regions: list, pre_frames_to_inc
     return samples
 
 
-def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = -30, scale_level_delimiter: bool = True, 
+def identify_amplitude_regions(audio: audiofile.AudioFile, level_delimiter: float = -30, scale_level_delimiter: bool = True, 
                                num_consecutive: int = 10, channel_index: int = 0) -> list:
     """
     Identifies amplitude regions in a sound. You provide a threshold, and any time the threshold is
@@ -170,7 +170,7 @@ def identify_amplitude_regions(audio: AudioFile, level_delimiter: float = -30, s
     return regions
 
 
-def detect_peaks(audio: AudioFile, channel_index: int = 0) -> list:
+def detect_peaks(audio: audiofile.AudioFile, channel_index: int = 0) -> list:
     """
     Detects peaks in an audio file. A peak is located at a sample N where the waveform changes direction.
     :param audio: An AudioFile object with the contents of a WAV file
@@ -188,7 +188,7 @@ def detect_peaks(audio: AudioFile, channel_index: int = 0) -> list:
     return peaks
 
 
-def fit_amplitude_envelope(audio: AudioFile, chunk_width: int = 5000, channel_index: int = 0) -> list:
+def fit_amplitude_envelope(audio: audiofile.AudioFile, chunk_width: int = 5000, channel_index: int = 0) -> list:
     """
     Fits an amplitude envelope to a provided audio file.
     Detects peaks in an audio file. Peaks are identified by being surrounded by lower absolute values to either side.
@@ -205,7 +205,7 @@ def fit_amplitude_envelope(audio: AudioFile, chunk_width: int = 5000, channel_in
     return envelope
 
 
-def detect_major_peaks(audio: AudioFile, min_percentage_of_max: float = 0.9, chunk_width: int = 5000, channel_index: int = 0) -> list:
+def detect_major_peaks(audio: audiofile.AudioFile, min_percentage_of_max: float = 0.9, chunk_width: int = 5000, channel_index: int = 0) -> list:
     """
     Detects major peaks in an audio file. A major peak is a sample peak that is one of the highest in its "local region."
     This is useful for identifying the period length (and therefore the fundamental frequency) of audio with a strong
@@ -250,7 +250,7 @@ def detect_major_peaks(audio: AudioFile, min_percentage_of_max: float = 0.9, chu
     return peaks
 
 
-def detect_loop_points(audio: AudioFile, channel_index: int = 0, num_periods: int = 5, effective_zero: float = 0.001, 
+def detect_loop_points(audio: audiofile.AudioFile, channel_index: int = 0, num_periods: int = 5, effective_zero: float = 0.001, 
                        maximum_amplitude_variance: float = 0.1, sample_amplitude_level_boundary: float = 0.1, 
                        loop_left_padding: int=100, loop_right_padding: int=100) -> list:
     """
@@ -369,7 +369,7 @@ def load_samples(directory, iowa=False) -> list:
     :return: A list of Samples
     """
     samples = []
-    files = find_files(directory)
+    files = audiofile.find_files(directory)
     for file in files:
         with pb.io.AudioFile(file, "r") as a:
             audio = a.read(a.frames)

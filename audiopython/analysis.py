@@ -6,8 +6,8 @@ Date: 12/17/23
 Audio analysis tools developed from Eyben, "Real-Time Speech and Music Classification"
 """
 
-import audiopython.basic_operations
-import audiopython.spectrum
+from . import basic_operations
+from . import spectrum
 import librosa
 import numpy as np
 import scipy.fft
@@ -26,9 +26,9 @@ def analyzer(audio, sample_rate, frequency_quantile=0.5):
     """
     results = {}
     audio_spectrum = scipy.fft.rfft(audio)
-    magnitude_spectrum, phase_spectrum = audiopython.spectrum.fft_data_decompose(audio_spectrum)
+    magnitude_spectrum, phase_spectrum = spectrum.fft_data_decompose(audio_spectrum)
     rfftfreqs = scipy.fft.rfftfreq(audio.shape[-1], 1/44100)
-    results["dbfs"] = audiopython.basic_operations.dbfs_audio(audio)
+    results["dbfs"] = basic_operations.dbfs_audio(audio)
     results['energy'] = energy(audio)
     results['pitch'] = pitch_estimation(audio, sample_rate, 27.5, 3520, frequency_quantile)
     results['midi'] = midi_estimation_from_pitch(results['pitch'])
