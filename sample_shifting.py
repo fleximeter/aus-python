@@ -23,7 +23,7 @@ def exchanger(data: np.ndarray, hop: int):
     :param hop: The hop size
     :return: The exchanged audio (or spectrum)
     """
-    new_data = np.empty(data.shape)
+    new_data = np.empty(data.shape, dtype=data.dtype)
     for i in range(data.shape[0]):
         for j in range(0, data.shape[1] - data.shape[1] % (hop * 2), hop * 2):
             for k in range(j, j+hop):
@@ -42,7 +42,7 @@ def stochastic_exchanger(data: np.ndarray, max_hop: int):
     :param hop: The hop size
     :return: The exchanged audio (or spectrum)
     """
-    new_data = np.empty(data.shape)
+    new_data = np.empty(data.shape, dtype=data.dtype)
 
     for i in range(data.shape[0]):
         future_indices = set()
@@ -59,6 +59,7 @@ def stochastic_exchanger(data: np.ndarray, max_hop: int):
                 swap_idx = _rng.choice(tuple(possible_indices))
                 new_data[i, idx] = data[i, swap_idx]
                 new_data[i, swap_idx] = data[i, idx]
+                # print(f"Swap {idx} {swap_idx}")
 
                 # Update the future and past indices
                 future_indices.add(swap_idx)
@@ -66,17 +67,18 @@ def stochastic_exchanger(data: np.ndarray, max_hop: int):
                 future_indices -= past_indices
             
             idx += 1
-            print(idx)
 
     return new_data
 
 
 FILE = "D:\\Recording\\Samples\\freesound\\creative_commons_0\\wind_chimes\\eq\\217800__minian89__wind_chimes_eq.wav"
+FFT_SIZE = 1024
 audio = audiofile.read(FILE)
 lpf = signal.butter(2, 10000, "low", output="sos", fs=audio.sample_rate)
 # new_samples1 = signal.sosfilt(lpf, exchanger(audio.samples, 8))
-new_samples2 = stochastic_exchanger(audio.samples, 4)
+STFT = signal.ShortTimeFFT(signal.windows.hann(FFT_SIZE), FFT_SIZE // 2, audio.sample_rate)
+stft_data = STFT.stft(audio.samples)
+stft_data = stochastic_exchanger(stft_data, 16)
 out1 = audiofile.AudioFile.copy_header(audio)
-out1.samples = new_samples2
-
+out1.samples = np.array(STFT.istft(stft_data))
 audiofile.write_with_pedalboard(out1, "D:\\Recording\\Samples\\freesound\\creative_commons_0\\wind_chimes\\eq\\temp1.wav")
