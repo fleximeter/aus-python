@@ -8,10 +8,9 @@ This file is for experimenting with granular synthesis.
 
 import numpy as np
 import random
-import datetime
 
 np.seterr(divide="ignore")
-_rng = random.Random(datetime.datetime.now().timestamp())
+_rng = random.Random()
  
 
 def extract_grain(audio: np.array, start_point=None, grain_size=None, window="hanning", max_window_size=None) -> np.array:

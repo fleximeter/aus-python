@@ -37,17 +37,7 @@ def fft_data_recompose(amps, phases):
     return real + (imag * 1j)
 
 
-def fft_freqs(window_size: int = 1024, sample_rate: int = 44100) -> np.array:
-    """
-    Gets the FFT frequencies for plotting, etc.
-    :param window_size: The window size used for FFT plotting
-    :param sample_rate: The sample rate of the audio
-    :return: An array with the frequencies
-    """
-    return scipy.fft.rfftfreq(window_size, 1 / sample_rate)
-
-
-def plot_fft_data(file: audiofile.AudioFile, channel: int = 0, frames=None, window_size: int = 1024):
+def plot_spectrogram(file: audiofile.AudioFile, channel: int = 0, frames=None, window_size: int = 1024):
     """
     Plots FFT data
     :param file: An AudioFile
@@ -65,4 +55,34 @@ def plot_fft_data(file: audiofile.AudioFile, channel: int = 0, frames=None, wind
     ax.set_title(f"Spectrum of \"{file.file_name}\"")
     ax.set_xlabel("Time (seconds)")
     ax.set_ylabel("Frequency (Hz)")
+    plt.show()
+
+
+def plot_spectrum(spectrum, sample_rate, frequency_range=None):
+    """
+    Plots FFT data. The FFT data should be in original imaginary form.
+    It will be converted to a normalized power spectrum in decibels.
+    :param spectrum: An imaginary spectrum to plot
+    :param sample_rate: The sample rate (for determining frequencies)
+    :param frequency_range: If not None, only the frequencies within this range will be plotted.
+    """
+    fig, ax = plt.subplots(figsize = (10, 5))
+    mags, phases = fft_data_decompose(spectrum)
+    power = np.square(mags)
+    power = 20 * np.log10(np.abs(power)/np.max(np.abs(power)))
+
+    freqs = scipy.fft.rfftfreq((spectrum.shape[-1] - 1) * 2, 1/sample_rate)
+    if frequency_range is not None:
+        new_freqs = []
+        new_power_spectrum = []
+        for i in range(freqs.shape[-1]):
+            if frequency_range[0] <= freqs[i] <= frequency_range[1]:
+                new_freqs.append(freqs[i])
+                new_power_spectrum.append(power[i])
+        ax.plot(new_freqs, new_power_spectrum)
+    else:
+        ax.plot(freqs, power)
+    ax.set_title(f"Spectrum")
+    ax.set_xlabel("Frequency (Hz)")
+    ax.set_ylabel("Amplitude (dB)")
     plt.show()
