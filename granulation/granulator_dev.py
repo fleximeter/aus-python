@@ -6,7 +6,7 @@ This file is for experimenting with granulation.
 
 import audiopython.audiofile as audiofile
 import audiopython.granulator as granulator
-import audiopython.basic_operations as basic_operations
+import audiopython.operations as operations
 import audiopython.analysis as analysis
 import audiopython.sampler as sampler
 import os
@@ -57,7 +57,7 @@ granulator.scale_grain_peaks(grains)
 max_dbfs = granulator.find_max_grain_dbfs(grains)
 grains2 = []
 for grain in grains:
-    if basic_operations.dbfs_audio(grain.samples) / max_dbfs < 2:
+    if operations.dbfs_audio(grain.samples) / max_dbfs < 2:
         grain.analysis = analysis.analyzer(grain.samples, grain.sample_rate)
         grains2.append(grain)
 

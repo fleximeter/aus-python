@@ -13,7 +13,7 @@ where the levels are consistently above a certain dBFS threshold.
 
 import audiopython.analysis as analysis
 import audiopython.audiofile as audiofile
-import audiopython.basic_operations as basic_operations
+import audiopython.operations as operations
 import audiopython.sampler as sampler
 import multiprocessing as mp
 import numpy as np
@@ -83,7 +83,7 @@ def extract_samples(audio_files, destination_directory):
         
         # Read the audio file and force it to the right number of dimensions
         audio = audiofile.read(file)
-        audio.samples = basic_operations.mix_if_not_mono(audio.samples, 2)
+        audio.samples = operations.mix_if_not_mono(audio.samples, 2)
         audio.num_channels = 1
         
         # Perform preprocessing
@@ -97,15 +97,15 @@ def extract_samples(audio_files, destination_directory):
         
         # Perform postprocessing, including scaling dynamic level and tuning
         for i, sample in enumerate(samples):
-            sample.samples = basic_operations.leak_dc_bias_averager(sample.samples)
+            sample.samples = operations.leak_dc_bias_averager(sample.samples)
             current_peak = np.max(np.abs(sample.samples))
             sample.samples *= 10 ** (PEAK_DBFS_FOR_FINAL_SAMPLES / 20) / current_peak
             if AUTOTUNE_SAMPLE:
-                midi = analysis.midi_estimation_from_pitch(analysis.librosa_pitch_estimation(basic_operations.mix_if_not_mono(
+                midi = analysis.midi_estimation_from_pitch(analysis.librosa_pitch_estimation(operations.mix_if_not_mono(
                     sample.samples
                     ), 44100, 27.5, 5000, 0.5))
                 if not np.isnan(midi) and not np.isinf(midi) and not np.isneginf(midi):
-                    sample.samples = basic_operations.midi_tuner(sample.samples, midi, 1, 44100)
+                    sample.samples = operations.midi_tuner(sample.samples, midi, 1, 44100)
                     sample.num_frames = sample.samples.shape[-1]
                     midi = int(np.round(midi))
             audiofile.write_with_pedalboard(sample, os.path.join(destination_directory, f"{short_name}.{i+1}.wav"))

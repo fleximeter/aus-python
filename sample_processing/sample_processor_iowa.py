@@ -11,7 +11,7 @@ It is customized for working with University of Iowa EMS samples.
 """
 
 import audiopython.analysis as analysis
-import audiopython.basic_operations as basic_operations
+import audiopython.operations as operations
 import json
 import numpy as np
 import os
@@ -48,14 +48,14 @@ if __name__ == "__main__":
                     )
                 midi_est = analysis.midi_estimation_from_pitch(
                     analysis.librosa_pitch_estimation(
-                        basic_operations.mix_if_not_mono(audio), 
+                        operations.mix_if_not_mono(audio), 
                         44100, 
                         440 * 2 ** ((file["midi"] - 4 - 69) / 12), 
                         440 * 2 ** ((file["midi"] + 4 - 69) / 12), 
                         0.5
                     ))
                 if not np.isnan(midi_est) and not np.isinf(midi_est) and not np.isneginf(midi_est):
-                   audio = basic_operations.midi_tuner(audio, midi_est, 1, 44100, file["midi"])
+                   audio = operations.midi_tuner(audio, midi_est, 1, 44100, file["midi"])
                 new_filename = re.sub(r'\.[0-9]+\.wav$', '', os.path.split(file["file"])[-1])
                 with pedalboard.io.AudioFile(os.path.join(destination_directory, f"sample.{file['midi']}.{new_filename}.wav"), 'w', 44100, 1, 24) as outfile:
                     outfile.write(audio)

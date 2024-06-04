@@ -9,7 +9,7 @@ import audiopython.audiofile as audiofile
 import audiopython.granulator as granulator
 import audiopython.sampler as sampler
 import audiopython.analysis as analysis
-import audiopython.basic_operations as basic_operations
+import audiopython.operations as operations
 import numpy as np
 import random
 

@@ -8,7 +8,7 @@ loop points and code for loading a Buffer automatically.
 """
 
 import audiopython.audiofile as audiofile
-import audiopython.basic_operations as basic_operations
+import audiopython.operations as operations
 import audiopython.sampler as sampler
 import sample_processing.sc_data_generator as sc_data_generator
 import multiprocessing as mp

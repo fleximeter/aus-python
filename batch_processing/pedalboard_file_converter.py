@@ -7,7 +7,7 @@ from AIFF to WAV, along with doing cool things like HPF for eliminating DC bias.
 """
 
 import audiopython.audiofile as audiofile
-import audiopython.basic_operations as basic_operations
+import audiopython.operations as operations
 import os
 import multiprocessing as mp
 import pathlib
@@ -72,7 +72,7 @@ def file_converter_filter(files):
         filename = f"{filename}.{NEW_EXTENSION}"
         with pb.io.AudioFile(file, 'r') as infile:
             audio = infile.read(infile.frames)
-            audio = basic_operations.mix_if_not_mono(audio)
+            audio = operations.mix_if_not_mono(audio)
             audio = scipy.signal.sosfilt(filt, audio)
             with pb.io.AudioFile(os.path.join(OUT_DIR, filename), 'w', OUT_SAMPLE_RATE, 1, OUT_BIT_DEPTH) as outfile:
                 outfile.write(audio)

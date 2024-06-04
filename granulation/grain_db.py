@@ -9,7 +9,7 @@ import audiopython.audiofile as audiofile
 import audiopython.granulator as granulator
 import audiopython.sampler as sampler
 import audiopython.analysis as analysis
-import audiopython.basic_operations as basic_operations
+import audiopython.operations as operations
 import numpy as np
 import random
 import grain_sql
@@ -83,7 +83,7 @@ def extract_random_grains(directory, n, size, dbfs_floor, instrument_family, ins
             if frame2 < sample.frames:
                 # The grain we extracted
                 grain = sample.samples[frame1:frame2]
-                dbfs = basic_operations.dbfs_max_local(grain, 1, 1)
+                dbfs = operations.dbfs_max_local(grain, 1, 1)
 
                 # If the grain is valid
                 if dbfs >= dbfs_floor:
@@ -142,7 +142,7 @@ def extract_random_grains_iowa(directory, n, size, dbfs_floor, instrument_family
             if frame2 < sample.frames:
                 # The grain we extracted
                 grain = sample.samples[frame1:frame2]
-                dbfs = basic_operations.dbfs_max_local(grain, 1, 1)
+                dbfs = operations.dbfs_max_local(grain, 1, 1)
 
                 # If the grain is valid
                 if dbfs >= dbfs_floor:
@@ -153,7 +153,7 @@ def extract_random_grains_iowa(directory, n, size, dbfs_floor, instrument_family
                         frame2,
                         sample.sample_rate,
                         (frame2 - frame1) / sample.sample_rate,
-                        basic_operations.midicps(sample.midi),
+                        operations.midicps(sample.midi),
                         sample.midi,
                         sample.dynamic_name,
                         sample.instrument_name,
