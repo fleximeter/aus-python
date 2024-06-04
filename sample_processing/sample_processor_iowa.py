@@ -47,7 +47,7 @@ if __name__ == "__main__":
                     audio
                     )
                 midi_est = analysis.midi_estimation_from_pitch(
-                    analysis.pitch_estimation(
+                    analysis.librosa_pitch_estimation(
                         basic_operations.mix_if_not_mono(audio), 
                         44100, 
                         440 * 2 ** ((file["midi"] - 4 - 69) / 12), 

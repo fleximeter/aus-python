@@ -104,7 +104,7 @@ def extract_samples(audio_files, destination_directory):
             current_peak = np.max(np.abs(sample.samples))
             sample.samples *= 10 ** (PEAK_DBFS_FOR_FINAL_SAMPLES / 20) / current_peak
             if AUTOTUNE_SAMPLE:
-                midi = analysis.midi_estimation_from_pitch(analysis.pitch_estimation(basic_operations.mix_if_not_mono(
+                midi = analysis.midi_estimation_from_pitch(analysis.librosa_pitch_estimation(basic_operations.mix_if_not_mono(
                     sample.samples
                     ), 44100, 27.5, 5000, 0.5))
                 if not np.isnan(midi) and not np.isinf(midi) and not np.isneginf(midi):

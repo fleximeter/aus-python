@@ -51,6 +51,22 @@ class AudioFile:
         self.sample_rate = 0 if "sample_rate" not in kwargs else kwargs["sample_rate"]
         self.samples = None
 
+    def copy_header(other):
+        """
+        Copies the header of another AudioFile and returns a new AudioFile object
+        :param other: The other AudioFile
+        :return: A new AudioFile
+        """
+        return AudioFile(audio_format=other.audio_format, 
+                         bits_per_sample=other.bits_per_sample, 
+                         block_align=other.block_align, 
+                         byte_rate=other.byte_rate, 
+                         bytes_per_sample=other.bytes_per_sample, 
+                         duration=other.duration, 
+                         frames=other.frames, 
+                         num_channels=other.num_channels, 
+                         sample_rate=other.sample_rate)
+
 
 def _unpack_float80(bytes) -> int:
     """

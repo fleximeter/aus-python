@@ -8,7 +8,6 @@ This file allows you to perform some simple operations on an audio array.
 
 import librosa
 import numpy as np
-import pedalboard
 np.seterr(divide="ignore")
 
 
