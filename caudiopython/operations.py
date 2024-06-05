@@ -6,7 +6,7 @@ Date: 12/2/23
 This file allows you to perform operations on audio and FFT data.
 """
 
-import librosa
+import cython
 import numpy as np
 import random
 
@@ -14,7 +14,8 @@ np.seterr(divide="ignore")
 _rng = random.Random()
 
 
-def adjust_level(audio: np.array, max_level: float) -> np.array:
+@cython.cfunc
+def adjust_level(audio: np.ndarray, max_level: cython.double) -> np.ndarray:
     """
     Adjusts the level of audio to a specified dB level
     :param audio: The audio samples as a NumPy array
@@ -26,7 +27,8 @@ def adjust_level(audio: np.array, max_level: float) -> np.array:
     return audio * (target_rms / current_rms)
 
 
-def calculate_dc_bias(audio: np.array):
+@cython.cfunc
+def calculate_dc_bias(audio: np.ndarray) -> cython.double:
     """
     Calculates DC bias of an audio signal
     :param audio: The audio signal
@@ -35,7 +37,8 @@ def calculate_dc_bias(audio: np.array):
     return np.average(audio, axis=audio.ndim-1)
 
 
-def dbfs_audio(audio: np.array) -> float:
+@cython.cfunc
+def dbfs_audio(audio: np.ndarray) -> cython.double:
     """
     Calculates dbfs (decibels full scale) for a chunk of audio. This function will use the RMS method, 
     and assumes that the audio is in float format where 1 is the highest possible peak.
@@ -49,7 +52,8 @@ def dbfs_audio(audio: np.array) -> float:
         return -np.inf
 
 
-def dbfs_max_local(audio: np.array, chunk_size=10, hop_size=5):
+@cython.cfunc
+def dbfs_max_local(audio: np.ndarray, chunk_size: cython.int = 10, hop_size: cython.int = 5) -> cython.double:
     """
     Checks the maximum local dbfs (decibels full scale) of an audio file
     :param audio: The audio
@@ -57,6 +61,7 @@ def dbfs_max_local(audio: np.array, chunk_size=10, hop_size=5):
     :param hop_size: The number of frames to hop from chunk center to chunk center
     :return: The max local dbfs
     """
+    i: cython.int
     dbfs = -np.inf
     for i in range(0, audio.size, hop_size):
         end = min(i + chunk_size, audio.size - 1)
@@ -71,7 +76,8 @@ def dbfs_max_local(audio: np.array, chunk_size=10, hop_size=5):
     return dbfs
 
 
-def dbfs_min_local(audio: np.array, chunk_size=10, hop_size=5):
+@cython.cfunc
+def dbfs_min_local(audio: np.ndarray, chunk_size: cython.int = 10, hop_size: cython.int = 5) -> cython.double:
     """
     Checks the minimum local dbfs (decibels full scale) of an audio file
     :param audio: The audio
@@ -79,6 +85,7 @@ def dbfs_min_local(audio: np.array, chunk_size=10, hop_size=5):
     :param hop_size: The number of frames to hop from chunk center to chunk center
     :return: The min local dbfs
     """
+    i: cython.int
     dbfs = 0
     for i in range(0, len(audio), hop_size):
         end = min(i + chunk_size, len(audio) - 1)
@@ -90,7 +97,8 @@ def dbfs_min_local(audio: np.array, chunk_size=10, hop_size=5):
     return dbfs
 
 
-def dbfs_sample(sample) -> float:
+@cython.cfunc
+def dbfs_sample(sample) -> cython.double:
     """
     Calculates dbfs (decibels full scale) for an audio sample. This function assumes that the 
     audio is in float format where 1 is the highest possible peak.
@@ -100,7 +108,8 @@ def dbfs_sample(sample) -> float:
     return 20 * np.log10(np.abs(sample))
 
 
-def fade_in(audio: np.array, envelope="hanning", duration=100) -> np.array:
+@cython.cfunc
+def fade_in(audio: np.ndarray, envelope="hanning", duration: cython.int = 100) -> np.ndarray:
     """
     Implements a fade-in on an array of audio samples.
     :param audio: The array of audio samples (may have multiple channels; the fade-in will be applied to all channels)
@@ -125,7 +134,8 @@ def fade_in(audio: np.array, envelope="hanning", duration=100) -> np.array:
     return audio * envelope
     
 
-def fade_out(audio: np.array, envelope="hanning", duration=100) -> np.array:
+@cython.cfunc
+def fade_out(audio: np.ndarray, envelope="hanning", duration: cython.int = 100) -> np.ndarray:
     """
     Implements a fade-out on an array of audio samples.
     :param audio: The array of audio samples (may have multiple channels; the fade-out will be applied to all channels)
@@ -150,7 +160,8 @@ def fade_out(audio: np.array, envelope="hanning", duration=100) -> np.array:
     return audio * envelope
 
 
-def force_equal_energy(audio: np.array, dbfs=-6.0, window_size=8192):
+@cython.cfunc
+def force_equal_energy(audio: np.ndarray, dbfs: cython.double = -6.0, window_size: cython.int = 8192) -> np.ndarray:
     """
     Forces equal energy on a mono signal over time. For example, if a signal initially has high energy, 
     and gets less energetic, this will adjust the energy level so that it does not decrease.
@@ -160,6 +171,10 @@ def force_equal_energy(audio: np.array, dbfs=-6.0, window_size=8192):
     :param window_size: The window size to consider when detecting RMS energy
     :return: An adjusted version of the signal
     """
+    i: cython.int
+    j: cython.int
+    idx: cython.int
+    frame_idx: cython.int
     while audio.ndim > 1:
         audio = audio.sum(-2)
     audio_new = np.empty(audio.shape)  # the new array we'll be returning
@@ -193,7 +208,8 @@ def force_equal_energy(audio: np.array, dbfs=-6.0, window_size=8192):
     return audio_new * level_float / audio_max
     
 
-def leak_dc_bias_averager(audio: np.array) -> np.array:
+@cython.cfunc
+def leak_dc_bias_averager(audio: np.ndarray) -> np.ndarray:
     """
     Leaks DC bias of an audio signal
     :param audio: The audio signal
@@ -207,7 +223,8 @@ def leak_dc_bias_averager(audio: np.array) -> np.array:
         return audio - np.average(audio, axis=audio.ndim-1)
 
 
-def leak_dc_bias_filter(audio: np.array) -> np.array:
+@cython.cfunc
+def leak_dc_bias_filter(audio: np.ndarray) -> np.ndarray:
     """
     Leaks DC bias of an audio signal using a highpass filter, described on pp. 762-763
     of "Understanding Digital Signal Processing," 3rd edition, by Richard G. Lyons
@@ -215,6 +232,8 @@ def leak_dc_bias_filter(audio: np.array) -> np.array:
     :return: The bias-free signal
     """
     ALPHA = 0.95
+    i: cython.int
+    j: cython.int
     new_signal = np.zeros(audio.shape)
     if audio.ndim == 1:
         delay_register = 0
@@ -232,7 +251,8 @@ def leak_dc_bias_filter(audio: np.array) -> np.array:
     return new_signal
 
 
-def cpsmidi(freq):
+@cython.cfunc
+def cpsmidi(freq: cython.double) -> cython.double:
     """
     Calculates the MIDI note of a provided frequency
     :param midi_note: The frequency in Hz
@@ -241,7 +261,8 @@ def cpsmidi(freq):
     return np.log2(freq / 440) * 12 + 69
 
 
-def midicps(midi_note):
+@cython.cfunc
+def midicps(midi_note: cython.double) -> cython.double:
     """
     Calculates the frequency of a specified midi note
     :param midi_note: The MIDI note
@@ -250,7 +271,8 @@ def midicps(midi_note):
     return 440 * 2 ** ((midi_note - 69) / 12)
 
 
-def midiratio(interval):
+@cython.cfunc
+def midiratio(interval: cython.double) -> cython.double:
     """
     Calculates the MIDI ratio of a specified midi interval
     :param midi_note: The MIDI interval in half steps
@@ -259,46 +281,21 @@ def midiratio(interval):
     return 2 ** (interval / 12)
 
 
-def midi_tuner(audio: np.array, midi_estimation, midi_division=1, sample_rate=44100, target_midi=None) -> np.array:
+@cython.cfunc
+def mixdown(audio: np.ndarray) -> np.ndarray:
     """
-    Retunes audio from a provided midi estimation to the nearest accurate MIDI note
-    :param audio: The audio to tune
-    :param midi_estimation: The MIDI estimation
-    :param midi_division: The MIDI division to tune to (1 for nearest semitone, 0.5 for nearest quarter tone)
-    :param sample_rate: The sample rate of the audio
-    :param target_midi: If specified, overrides the rounding functionality and uses this as the target MIDI note
-    :return: The tuned audio
-    """
-    if not target_midi:
-        target_midi = round(float(midi_estimation / midi_division)) * midi_division
-    ratio = 2 ** ((target_midi - midi_estimation) / 12)
-    new_sr = sample_rate * ratio
-    # print(midi_estimation, new_midi, ratio, new_sr)
-    return librosa.resample(audio, orig_sr=new_sr, target_sr=sample_rate, res_type="soxr_vhq")
-
-
-def mix_if_not_mono(audio: np.array, ndim=1) -> np.array:
-    """
-    Mixes a signal to a mono signal (if it isn't mono already). 
-    If the amplitude is greater than 1, applies gain reduction to bring the amplitude down to 1.
+    Mixes a multichannel signal to a mono signal. 
     :param audio: The audio to mix if it isn't mono
-    :param ndim: Whether or not to reshape the array to 1 dimension
     :return: The mixed audio
     """
-    if audio.ndim > 1:
-        mix = np.sum(audio, -2)
-        if ndim == 2:
-            mix = np.reshape(mix, (1, mix.size))
-        mix /= audio.shape[-2]
-        return mix
-    elif audio.ndim == 1 and ndim == 2:
-        mix = np.reshape(mix, (1, mix.shape[-1]))
-        return mix
-    else:
-        return audio
+    mix = np.sum(audio, 0)
+    mix = np.reshape(mix, (1, mix.size))
+    mix /= audio.shape[0]
+    return mix
 
 
-def exchanger(data: np.ndarray, hop: int):
+@cython.cfunc
+def exchanger(data: np.ndarray, hop: cython.int) -> np.ndarray:
     """
     Exchanges samples in an audio file or STFT frames in a spectrum. Each sample (or STFT frame) 
     is swapped with the sample (or STFT frame) *hop* steps ahead or *hop* steps behind. If audio
@@ -308,6 +305,9 @@ def exchanger(data: np.ndarray, hop: int):
     :param hop: The hop size
     :return: The exchanged audio (or spectrum)
     """
+    i: cython.int
+    j: cython.int
+    k: cython.int
     new_data = np.empty(data.shape, dtype=data.dtype)
     for i in range(data.shape[0]):
         for j in range(0, data.shape[1] - data.shape[1] % (hop * 2), hop * 2):
@@ -317,7 +317,8 @@ def exchanger(data: np.ndarray, hop: int):
     return new_data
 
 
-def stochastic_exchanger(data: np.ndarray, max_hop: int):
+@cython.cfunc
+def stochastic_exchanger(data: np.ndarray, max_hop: cython.int) -> np.ndarray:
     """
     Stochastically exchanges samples in an audio file or STFT frames in a spectrum. Each sample 
     (or STFT frame) is swapped with the sample (or STFT frame) up to *hop* steps ahead or *hop* 
@@ -330,6 +331,9 @@ def stochastic_exchanger(data: np.ndarray, max_hop: int):
     :return: The exchanged audio (or spectrum)
     """
     new_data = np.empty(data.shape, dtype=data.dtype)
+    i: cython.int
+    idx: cython.int
+    swap_idx: cython.int
 
     for i in range(data.shape[0]):
         future_indices = set()
