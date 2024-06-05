@@ -6,6 +6,7 @@ Date: 7/16/23
 This file is for experimenting with granular synthesis.
 """
 
+import cython
 import numpy as np
 import random
 
@@ -13,46 +14,45 @@ np.seterr(divide="ignore")
 _rng = random.Random()
  
 
-def extract_grain(audio: np.array, start_point=None, grain_size=None, window="hanning", max_window_size=None) -> np.array:
+@cython.cfunc
+def extract_grain(audio: np.ndarray, start_point: cython.int = -1, grain_size: cython.int = -1, window="hanning", max_window_size: cython.int = -1) -> np.ndarray:
     """
     Extracts a single grain from an array of samples.
     :param audio: A numpy array of audio samples
-    :param start_point: The starting frame of the grain. If None, this will be randomly chosen.
-    :param grain_size: The size of the grain in frames. If None, this will be randomly chosen.
+    :param start_point: The starting frame of the grain. If -1, this will be randomly chosen.
+    :param grain_size: The size of the grain in frames. If -1, this will be randomly chosen.
     :param window: The window that will be applied to the grain.
-    :param max_window_size: If specified, the window will not be larger than this size. If the grain is longer,
+    :param max_window_size: If not -1, the window will not be larger than this size. If the grain is longer,
     the window will be split and only applied to the start and end of the grain.
     :return: A Numpy array with the grain
     """
-    if audio is None:
-        raise TypeError("You need to provide audio to granulate.")
+    if start_point == -1:
+        start_point = _rng.randint(0, audio.shape[0] - 1)
+    if grain_size == -1:
+        grain_size = _rng.randint(0, audio.shape[0] - 1 - start_point)
+    if max_window_size == -1:
+        max_window_size = grain_size
+    elif max_window_size > grain_size:
+        max_window_size = grain_size
+    grain = audio[start_point:start_point + grain_size]
+    if window == "bartlett":
+        window = np.bartlett(max_window_size)
+    elif window == "blackman":
+        window = np.blackman(max_window_size)
+    elif window == "hanning":
+        window = np.hanning(max_window_size)
+    elif window == "hamming":
+        window = np.hamming(max_window_size)
     else:
-        if start_point is None:
-            start_point = _rng.randint(0, audio.shape[0] - 1)
-        if grain_size is None:
-            grain_size = _rng.randint(0, audio.shape[0] - 1 - start_point)
-        if max_window_size is None:
-            max_window_size = grain_size
-        elif max_window_size > grain_size:
-            max_window_size = grain_size
-        grain = audio[start_point:start_point + grain_size]
-        if window == "bartlett":
-            window = np.bartlett(max_window_size)
-        elif window == "blackman":
-            window = np.blackman(max_window_size)
-        elif window == "hanning":
-            window = np.hanning(max_window_size)
-        elif window == "hamming":
-            window = np.hamming(max_window_size)
-        else:
-            window = np.ones((max_window_size))
-        
-        if max_window_size < grain_size:
-            window = np.hstack((window[:max_window_size // 2], np.ones((grain_size - max_window_size)), window[max_window_size // 2:]))
-        
-        return grain * window
+        window = np.ones((max_window_size))
     
+    if max_window_size < grain_size:
+        window = np.hstack((window[:max_window_size // 2], np.ones((grain_size - max_window_size)), window[max_window_size // 2:]))
+    
+    return grain * window
 
+
+@cython.cfunc
 def find_max_grain_dbfs(grains: list):
     """
     Finds the maximum overall dbfs (by grain) of a list of grains. Useful
