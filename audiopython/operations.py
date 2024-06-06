@@ -21,9 +21,9 @@ def adjust_level(audio: np.array, max_level: float) -> np.array:
     :param max_level: The max level for the audio
     :return: The scaled audio
     """
-    current_rms = np.sqrt(np.average(np.square(audio), axis=audio.ndim-1))[0]
-    target_rms = 10 ** (max_level / 20)
-    return audio * (target_rms / current_rms)
+    current_max = np.max(np.abs(audio))
+    target_max = 10 ** (max_level / 20)
+    return audio * (target_max / current_max)
 
 
 def calculate_dc_bias(audio: np.array):
