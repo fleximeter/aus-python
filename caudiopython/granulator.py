@@ -53,7 +53,7 @@ def extract_grain(audio: np.ndarray, start_point: cython.int = -1, grain_size: c
 
 
 @cython.cfunc
-def find_max_grain_dbfs(grains: list):
+def find_max_grain_dbfs(grains: list) -> cython.double:
     """
     Finds the maximum overall dbfs (by grain) of a list of grains. Useful
     for getting rid of grains with a low dbfs.
@@ -63,7 +63,7 @@ def find_max_grain_dbfs(grains: list):
     max_dbfs = -np.inf
     for grain in grains:
         try:
-            rms = np.sqrt(np.average(np.square(grain.samples), axis=grain.samples.ndim-1))
+            rms = np.sqrt(np.average(np.square(grain), axis=grain.ndim-1))
             dbfs = 20 * np.log10(np.abs(rms))
             max_dbfs = max(max_dbfs, dbfs)
         except Exception:
@@ -71,7 +71,8 @@ def find_max_grain_dbfs(grains: list):
     return max_dbfs
 
 
-def merge_grains(grains: list, overlap_size=10) -> np.array:
+@cython.cfunc
+def merge_grains(grains: list, overlap_size: cython.int = 10) -> np.ndarray:
     """
     Merges a list of grains, with some overlap between grains
     :param grains: A list of grains
@@ -79,13 +80,14 @@ def merge_grains(grains: list, overlap_size=10) -> np.array:
     :return: An array with the combined grains
     """
     current_grain = 1
-    output = grains[0].samples
+    output = grains[0]
     while current_grain < len(grains):
-        output = np.hstack((output[:-overlap_size], output[-overlap_size:] + grains[current_grain].samples[:overlap_size], grains[current_grain].samples[overlap_size:]))
+        output = np.hstack((output[:-overlap_size], output[-overlap_size:] + grains[current_grain][:overlap_size], grains[current_grain][overlap_size:]))
         current_grain += 1
     return output
 
 
+@cython.cfunc
 def scale_grain_peaks(grains: list):
     """
     Scales the peaks of a list of grains so they all have the same peak amplitude.
@@ -94,6 +96,6 @@ def scale_grain_peaks(grains: list):
     """
     maxamp = 0
     for grain in grains:
-        maxamp = max(maxamp, np.max(grain.samples))
+        maxamp = max(maxamp, np.max(grain))
     for i in range(len(grains)):
-        grains[i].samples /= maxamp
+        grains[i] /= maxamp

@@ -7,35 +7,7 @@ This file contains functionality for processing audio files for use with sampler
 """
 
 import cython
-import os
 import numpy as np
-from . import audiofile
-import pedalboard as pb
-
-
-class Sample(audiofile.AudioFile):
-    def __init__(self, audio, sample_rate=44100, path=""):
-        """
-        Creates a Sample with provided audio
-        :param audio: A NumPy array of audio samples
-        :param sample_rate: The sample rate of the audio
-        :param path: The path of the audio file
-        """
-        super().__init__(frames=audio.shape[-1], duration=audio.shape[-1] / sample_rate, num_channels=1, sample_rate=sample_rate)
-        self.samples = audio
-        self.path = path
-        if path != "":
-            self.file_name = os.path.split(path)[-1]
-        else:
-            self.file_name = ""
-        self.analysis = {}
-        self.dynamic_name = None
-        self.dynamic_id = None
-        self.instrument_name = None
-        self.midi = None
-        self.pitched = False
-        self.string_name = None
-        self.string_id = None
 
 
 def extract_samples(audio: np.ndarray, amplitude_regions: list, pre_frames_to_include: int = 0, 
@@ -60,9 +32,9 @@ def extract_samples(audio: np.ndarray, amplitude_regions: list, pre_frames_to_in
     :return: A list of AudioFile objects with the samples
     """
     file_samples = np.hstack((
-        np.zeros((audio.num_channels, pre_frames_to_include), dtype=audio.samples.dtype),
-        audio.samples,
-        np.zeros((audio.num_channels, post_frames_to_include), dtype=audio.samples.dtype)
+        np.zeros((audio.shape[0], pre_frames_to_include), dtype=audio.dtype),
+        audio,
+        np.zeros((audio.shape[0], post_frames_to_include), dtype=audio.dtype)
     ))
     samples = []
 
@@ -75,18 +47,7 @@ def extract_samples(audio: np.ndarray, amplitude_regions: list, pre_frames_to_in
 
     # Create the samples
     for sample in amplitude_regions:
-        new_audio_file = audiofile.AudioFile(
-            audio_format=audio.audio_format,
-            bits_per_sample=audio.bits_per_sample,
-            block_align=audio.block_align,
-            byte_rate=audio.byte_rate,
-            bytes_per_sample=audio.bytes_per_sample,
-            duration=(sample[1] - sample[0] + 1) / audio.sample_rate,
-            num_channels=audio.num_channels,
-            frames=(sample[1] - sample[0] + 1),
-            sample_rate=audio.sample_rate
-        )
-        new_audio_file.samples = file_samples[:, sample[0]:sample[1]+1]
+        new_audio_file = file_samples[:, sample[0]:sample[1]+1]
 
         # Get the windows
         pre_envelope = None
@@ -109,14 +70,16 @@ def extract_samples(audio: np.ndarray, amplitude_regions: list, pre_frames_to_in
             post_envelope = np.hamming(post_envelope_frames * 2)[post_envelope_frames:]
         
         # Apply the windows
+        i: cython.int
+        j: cython.int
         if pre_envelope is not None:
             for i in range(pre_envelope_frames):
-                for j in range(new_audio_file.num_channels):
-                    new_audio_file.samples[j, i] *= pre_envelope[i]
+                for j in range(new_audio_file.shape[0]):
+                    new_audio_file[j, i] *= pre_envelope[i]
         if post_envelope is not None:
             for i in range(post_envelope_frames):
-                for j in range(new_audio_file.num_channels):
-                    new_audio_file.samples[j, new_audio_file.frames - post_envelope_frames + i] *= post_envelope[i]
+                for j in range(new_audio_file.shape[0]):
+                    new_audio_file[j, new_audio_file.shape[1] - post_envelope_frames + i] *= post_envelope[i]
 
         samples.append(new_audio_file)
     
@@ -408,28 +371,3 @@ def detect_loop_points(audio: np.ndarray, num_periods: cython.int = 5, effective
                         "dimension is the frame index.")
     
     return frame_tuples
-
-
-def load_samples(directory, iowa=False) -> list:
-    """
-    Loads preprocessed samples from a directory, and returns them as a list of Samples
-    :param directory: The directory to search
-    :param iowa: Whether or not to add additional information from the file name for 
-    Iowa EMS samples
-    :return: A list of Samples
-    """
-    samples = []
-    files = audiofile.find_files(directory)
-    for file in files:
-        with pb.io.AudioFile(file, "r") as a:
-            audio = a.read(a.frames)
-            sample = Sample(np.reshape(audio, (audio.size)), a.samplerate, file)
-            if iowa:
-                name_data = os.path.split(file)[-1].split('.')
-                sample.midi = int(name_data[1])
-                sample.instrument_name = name_data[2]
-                sample.dynamic_name = name_data[5]
-                sample.pitched = True
-                sample.string_name = name_data[4][-1]
-            samples.append(sample)
-    return samples
