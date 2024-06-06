@@ -310,7 +310,7 @@ def detect_loop_points(audio: np.ndarray, num_periods: cython.int = 5, effective
                 amplitude_level_range = (amplitude_level_ranges[0][0], amplitude_level_ranges[-1][-1])
 
                 # The major peaks in the sound file.
-                major_peaks = detect_major_peaks(audio, 0.9, 5000, i)
+                major_peaks = detect_major_peaks(audio, 0.9, 5000)
                 
                 # This stores frame tuples that identify potential loop points.
                 

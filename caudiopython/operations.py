@@ -15,7 +15,7 @@ _rng = random.Random()
 
 
 @cython.cfunc
-def adjust_level(audio: np.ndarray, max_level: cython.double) -> np.ndarray:
+def adjust_level(audio: np.ndarray, max_level: cython.double):
     """
     Adjusts the level of audio to a specified dB level
     :param audio: The audio samples as a NumPy array
@@ -109,7 +109,7 @@ def dbfs_sample(sample) -> cython.double:
 
 
 @cython.cfunc
-def fade_in(audio: np.ndarray, envelope="hanning", duration: cython.int = 100) -> np.ndarray:
+def fade_in(audio: np.ndarray, envelope="hanning", duration: cython.int = 100):
     """
     Implements a fade-in on an array of audio samples.
     :param audio: The array of audio samples (may have multiple channels; the fade-in will be applied to all channels)
@@ -135,7 +135,7 @@ def fade_in(audio: np.ndarray, envelope="hanning", duration: cython.int = 100) -
     
 
 @cython.cfunc
-def fade_out(audio: np.ndarray, envelope="hanning", duration: cython.int = 100) -> np.ndarray:
+def fade_out(audio: np.ndarray, envelope="hanning", duration: cython.int = 100):
     """
     Implements a fade-out on an array of audio samples.
     :param audio: The array of audio samples (may have multiple channels; the fade-out will be applied to all channels)
@@ -161,7 +161,7 @@ def fade_out(audio: np.ndarray, envelope="hanning", duration: cython.int = 100) 
 
 
 @cython.cfunc
-def force_equal_energy(audio: np.ndarray, dbfs: cython.double = -6.0, window_size: cython.int = 8192) -> np.ndarray:
+def force_equal_energy(audio: np.ndarray, dbfs: cython.double = -6.0, window_size: cython.int = 8192):
     """
     Forces equal energy on a mono signal over time. For example, if a signal initially has high energy, 
     and gets less energetic, this will adjust the energy level so that it does not decrease.
@@ -209,7 +209,7 @@ def force_equal_energy(audio: np.ndarray, dbfs: cython.double = -6.0, window_siz
     
 
 @cython.cfunc
-def leak_dc_bias_averager(audio: np.ndarray) -> np.ndarray:
+def leak_dc_bias_averager(audio: np.ndarray):
     """
     Leaks DC bias of an audio signal
     :param audio: The audio signal
@@ -224,7 +224,7 @@ def leak_dc_bias_averager(audio: np.ndarray) -> np.ndarray:
 
 
 @cython.cfunc
-def leak_dc_bias_filter(audio: np.ndarray) -> np.ndarray:
+def leak_dc_bias_filter(audio: np.ndarray):
     """
     Leaks DC bias of an audio signal using a highpass filter, described on pp. 762-763
     of "Understanding Digital Signal Processing," 3rd edition, by Richard G. Lyons
@@ -282,7 +282,7 @@ def midiratio(interval: cython.double) -> cython.double:
 
 
 @cython.cfunc
-def mixdown(audio: np.ndarray) -> np.ndarray:
+def mixdown(audio: np.ndarray):
     """
     Mixes a multichannel signal to a mono signal. 
     :param audio: The audio to mix if it isn't mono
@@ -295,7 +295,7 @@ def mixdown(audio: np.ndarray) -> np.ndarray:
 
 
 @cython.cfunc
-def exchanger(data: np.ndarray, hop: cython.int) -> np.ndarray:
+def exchanger(data: np.ndarray, hop: cython.int):
     """
     Exchanges samples in an audio file or STFT frames in a spectrum. Each sample (or STFT frame) 
     is swapped with the sample (or STFT frame) *hop* steps ahead or *hop* steps behind. If audio
@@ -318,7 +318,7 @@ def exchanger(data: np.ndarray, hop: cython.int) -> np.ndarray:
 
 
 @cython.cfunc
-def stochastic_exchanger(data: np.ndarray, max_hop: cython.int) -> np.ndarray:
+def stochastic_exchanger(data: np.ndarray, max_hop: cython.int):
     """
     Stochastically exchanges samples in an audio file or STFT frames in a spectrum. Each sample 
     (or STFT frame) is swapped with the sample (or STFT frame) up to *hop* steps ahead or *hop* 

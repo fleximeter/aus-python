@@ -15,7 +15,7 @@ _rng = random.Random()
  
 
 @cython.cfunc
-def extract_grain(audio: np.ndarray, start_point: cython.int = -1, grain_size: cython.int = -1, window="hanning", max_window_size: cython.int = -1) -> np.ndarray:
+def extract_grain(audio: np.ndarray, start_point: cython.int = -1, grain_size: cython.int = -1, window="hanning", max_window_size: cython.int = -1):
     """
     Extracts a single grain from an array of samples.
     :param audio: A numpy array of audio samples
@@ -72,7 +72,7 @@ def find_max_grain_dbfs(grains: list) -> cython.double:
 
 
 @cython.cfunc
-def merge_grains(grains: list, overlap_size: cython.int = 10) -> np.ndarray:
+def merge_grains(grains: list, overlap_size: cython.int = 10):
     """
     Merges a list of grains, with some overlap between grains
     :param grains: A list of grains
