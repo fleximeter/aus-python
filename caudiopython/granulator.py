@@ -34,7 +34,7 @@ def extract_grain(audio: np.ndarray, start_point: cython.int = -1, grain_size: c
         max_window_size = grain_size
     elif max_window_size > grain_size:
         max_window_size = grain_size
-    grain = audio[start_point:start_point + grain_size]
+    grain = audio[:, start_point:start_point + grain_size]
     if window == "bartlett":
         window = np.bartlett(max_window_size)
     elif window == "blackman":
@@ -53,7 +53,7 @@ def extract_grain(audio: np.ndarray, start_point: cython.int = -1, grain_size: c
 
 
 @cython.cfunc
-def find_max_grain_dbfs(grains: list) -> cython.double:
+def find_max_grain_dbfs(grains: list):
     """
     Finds the maximum overall dbfs (by grain) of a list of grains. Useful
     for getting rid of grains with a low dbfs.
@@ -82,7 +82,7 @@ def merge_grains(grains: list, overlap_size: cython.int = 10):
     current_grain = 1
     output = grains[0]
     while current_grain < len(grains):
-        output = np.hstack((output[:-overlap_size], output[-overlap_size:] + grains[current_grain][:overlap_size], grains[current_grain][overlap_size:]))
+        output = np.hstack((output[:, :-overlap_size], output[:, -overlap_size:] + grains[current_grain][:, :overlap_size], grains[current_grain][:, overlap_size:]))
         current_grain += 1
     return output
 

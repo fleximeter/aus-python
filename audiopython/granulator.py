@@ -13,7 +13,7 @@ np.seterr(divide="ignore")
 _rng = random.Random()
  
 
-def extract_grain(audio: np.array, start_point=None, grain_size=None, window="hanning", max_window_size=None) -> np.array:
+def extract_grain(audio: np.ndarray, start_point=None, grain_size=None, window="hanning", max_window_size=None) -> np.ndarray:
     """
     Extracts a single grain from an array of samples.
     :param audio: A numpy array of audio samples
@@ -35,7 +35,7 @@ def extract_grain(audio: np.array, start_point=None, grain_size=None, window="ha
             max_window_size = grain_size
         elif max_window_size > grain_size:
             max_window_size = grain_size
-        grain = audio[start_point:start_point + grain_size]
+        grain = audio[:, start_point:start_point + grain_size]
         if window == "bartlett":
             window = np.bartlett(max_window_size)
         elif window == "blackman":
@@ -71,7 +71,7 @@ def find_max_grain_dbfs(grains: list):
     return max_dbfs
 
 
-def merge_grains(grains: list, overlap_size=10) -> np.array:
+def merge_grains(grains: list, overlap_size=10) -> np.ndarray:
     """
     Merges a list of grains, with some overlap between grains
     :param grains: A list of grains

@@ -38,7 +38,7 @@ def calculate_dc_bias(audio: np.ndarray) -> cython.double:
 
 
 @cython.cfunc
-def dbfs_audio(audio: np.ndarray) -> cython.double:
+def dbfs_audio(audio: np.ndarray):
     """
     Calculates dbfs (decibels full scale) for a chunk of audio. This function will use the RMS method, 
     and assumes that the audio is in float format where 1 is the highest possible peak.
@@ -53,7 +53,7 @@ def dbfs_audio(audio: np.ndarray) -> cython.double:
 
 
 @cython.cfunc
-def dbfs_max_local(audio: np.ndarray, chunk_size: cython.int = 10, hop_size: cython.int = 5) -> cython.double:
+def dbfs_max_local(audio: np.ndarray, chunk_size: cython.int = 10, hop_size: cython.int = 5):
     """
     Checks the maximum local dbfs (decibels full scale) of an audio file
     :param audio: The audio
@@ -77,7 +77,7 @@ def dbfs_max_local(audio: np.ndarray, chunk_size: cython.int = 10, hop_size: cyt
 
 
 @cython.cfunc
-def dbfs_min_local(audio: np.ndarray, chunk_size: cython.int = 10, hop_size: cython.int = 5) -> cython.double:
+def dbfs_min_local(audio: np.ndarray, chunk_size: cython.int = 10, hop_size: cython.int = 5):
     """
     Checks the minimum local dbfs (decibels full scale) of an audio file
     :param audio: The audio
@@ -98,7 +98,7 @@ def dbfs_min_local(audio: np.ndarray, chunk_size: cython.int = 10, hop_size: cyt
 
 
 @cython.cfunc
-def dbfs_sample(sample) -> cython.double:
+def dbfs_sample(sample):
     """
     Calculates dbfs (decibels full scale) for an audio sample. This function assumes that the 
     audio is in float format where 1 is the highest possible peak.
@@ -258,7 +258,10 @@ def cpsmidi(freq: cython.double) -> cython.double:
     :param midi_note: The frequency in Hz
     :return: The MIDI note
     """
-    return np.log2(freq / 440) * 12 + 69
+    midi = np.log2(freq / 440) * 12 + 69
+    if np.isnan(midi) or np.isneginf(midi) or np.isinf(midi):
+        midi = 0.0
+    return midi
 
 
 @cython.cfunc
@@ -268,7 +271,10 @@ def midicps(midi_note: cython.double) -> cython.double:
     :param midi_note: The MIDI note
     :return: The frequency in Hz
     """
-    return 440 * 2 ** ((midi_note - 69) / 12)
+    cps = 440 * 2 ** ((midi_note - 69) / 12)
+    if np.isnan(cps) or np.isneginf(cps) or np.isinf(cps):
+        cps = 0.0
+    return cps
 
 
 @cython.cfunc
@@ -278,7 +284,10 @@ def midiratio(interval: cython.double) -> cython.double:
     :param midi_note: The MIDI interval in half steps
     :return: The ratio
     """
-    return 2 ** (interval / 12)
+    ratio = 2 ** (interval / 12)
+    if np.isnan(ratio) or np.isneginf(ratio) or np.isinf(ratio):
+        ratio = 0.0
+    return ratio
 
 
 @cython.cfunc
