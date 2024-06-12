@@ -18,17 +18,13 @@ http://midi.teragonaudio.com/tech/aiff.htm (AIFF)
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
 import math
 import struct
-import os
 import pedalboard as pb
 import re
 
 LARGE_FIELD = 4
 SMALL_FIELD = 2
-
-letter_map = {'A': 69, 'B': 71, 'C': 60, 'D': 62, 'E': 64, 'F': 65, 'G': 67}
 
 
 class AudioFile:
@@ -151,61 +147,6 @@ def convert(file: AudioFile, format: str):
         file.audio_format = 3
         file.bits_per_sample = format_bits
         file.bytes_per_sample = format_bits // 8
-
-
-def convert_directory(directory_name: str, format: str, recurse: bool = True):
-    """
-    Converts all WAV and AIFF files within a directory (and its subdirectories, if recurse=True)
-    to the specified format. Outputs the results to a new directory with mirrored directory structure.
-
-    :param directory_name: The directory name
-    :param format: The destination format (supported formats are 'int16', 'int24', 'int32', 'float32',
-    and 'float64')
-    :param recurse: Whether or not to recurse and convert all subdirectories as well
-    """
-    pass
-
-
-def find_files(directory_name: str) -> list:
-    """
-    Finds all WAV and AIFF files within a directory (and its subdirectories, if recurse=True)
-
-    :param directory_name: The directory name
-    :param format: The destination format (supported formats are 'int16', 'int24', 'int32', 'float32',
-    and 'float64')
-    :return: A list of file names
-    """
-    files_audio = []
-    search = re.compile(r"(\.wav$)|(\.aif$)|(\.aiff$)")
-
-    for path, subdirectories, files in os.walk(directory_name):
-        for name in files:
-            result = search.search(name)
-            if result:
-                files_audio.append(os.path.join(path, name))
-
-    return files_audio
-
-
-def load_yamaha():
-    dir = "D:\\Recording\\Samples\\pianobook\\YamahaC7\\YamahaC7\\Samples"
-    files = find_files(dir)
-    midi_map = {}
-    letter = re.compile(r"^[A-Za-z]")
-    sharp = re.compile(r"^[A-Za-z]#")
-    number = re.compile(r"[0-9](?=_)")
-    for file in files:
-        file_name = os.path.split(file)[1]
-        base_midi = letter_map[letter.search(file_name).group(0)]
-        if sharp.search(file_name):
-            base_midi += 1
-        octave = int(number.search(file_name).group(0)) - 4
-        base_midi += 12 * octave
-        if base_midi not in midi_map:
-            midi_map[base_midi] = [file]
-        else:
-            midi_map[base_midi].append(file)
-    return midi_map
 
 
 def read(file_name: str) -> AudioFile:
@@ -446,48 +387,6 @@ def read_wav(file_name: str, header_only=False) -> AudioFile:
         return audio_file
     else:
         raise RuntimeWarning(f"The WAV file {file_name} was unusually formatted and could not be read. This might be because you tried to read a WAV file that was not in PCM format.")
-
-
-def visualize_audio_file(file: AudioFile, channels=None, frames=None):
-    """
-    Visualizes a WAV file using matplotlib. This visualizer can only visualize one channel
-    at a time.
-    :param file: An AudioFile object
-    :param channels: The channels to visualize, as a list or tuple. If None, will visualize
-    all channels.
-    :param frames: A list or tuple containing a range of frames to visualize. If None, will
-    visualize all frames.
-    """
-    if channels is None:
-        channels = [i for i in range(file.num_channels)]
-    if type(channels) == int:
-        channels = [channels]
-    
-    # Get the frames to visualize
-    if frames is None:
-        ys = [file.samples[i, :] for i in channels]
-        x = [i for i in range(file.frames)]
-    else:
-        ys = [file.samples[i, frames[0]:frames[1]] for i in channels]
-        x = [i for i in range(frames[0], frames[1])]
-    
-    fig, axs = plt.subplots(nrows=len(channels), ncols=1)
-    fig.suptitle(f"WAV File Visualization for {file.file_name}")
-    
-    if len(channels) > 1:
-        for i in range(len(channels)):
-            axs[i].set_xlabel("Frame Index")
-            axs[i].set_ylabel("Amplitude")
-            axs[i].set_title(f"Channel {channels[i] + 1}")
-            axs[i].plot(x, ys[i])
-    else:
-        axs.set_xlabel("Frame Index")
-        axs.set_ylabel("Amplitude")
-        axs.set_title(f"Channel 1")
-        axs.plot(x, ys[0])
-    
-    fig.tight_layout()
-    plt.show()
     
 
 def write_wav(file: AudioFile, path: str, write_junk_chunk=False):

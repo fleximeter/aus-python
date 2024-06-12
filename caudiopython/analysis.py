@@ -4,10 +4,11 @@ Author: Jeff Martin
 Date: 12/17/23
 
 Audio analysis tools developed from Eyben, "Real-Time Speech and Music Classification"
+These tools expect audio as a 1D array of samples.
 """
 
 import cython
-import operations
+from . import operations
 import numpy as np
 import scipy.fft
 import scipy.signal
@@ -23,21 +24,23 @@ def analyzer(audio: np.ndarray, sample_rate: int) -> dict:
     results = {}
     audio_spectrum = scipy.fft.rfft(audio)
     magnitude_spectrum = np.abs(audio_spectrum)
+    magnitude_spectrum_sum = np.sum(magnitude_spectrum)
     power_spectrum = np.square(magnitude_spectrum)
-    spectrum_pmf = power_spectrum / np.sum(power_spectrum)
+    power_spectrum_sum = np.sum(power_spectrum)
+    spectrum_pmf = power_spectrum / power_spectrum_sum
     rfftfreqs = scipy.fft.rfftfreq(audio.shape[-1], 1/sample_rate)
     results['dbfs'] = operations.dbfs_audio(audio)
     results['energy'] = energy(audio)
-    results['spectral_centroid'] = spectral_centroid(magnitude_spectrum, rfftfreqs)
+    results['spectral_centroid'] = spectral_centroid(magnitude_spectrum, rfftfreqs, magnitude_spectrum_sum)
     results['spectral_variance'] = spectral_variance(spectrum_pmf, rfftfreqs, results['spectral_centroid'])
     results['spectral_skewness'] = spectral_skewness(spectrum_pmf, rfftfreqs, results['spectral_centroid'], results['spectral_variance'])
     results['spectral_kurtosis'] = spectral_kurtosis(spectrum_pmf, rfftfreqs, results['spectral_centroid'], results['spectral_variance'])
     results['spectral_entropy'] = spectral_entropy(power_spectrum)
-    results['spectral_flatness'] = spectral_flatness(magnitude_spectrum)
-    results['spectral_roll_off_0.5'] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.5)
-    results['spectral_roll_off_0.75'] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.75)
-    results['spectral_roll_off_0.9'] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.9)
-    results['spectral_roll_off_0.95'] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.95)
+    results['spectral_flatness'] = spectral_flatness(magnitude_spectrum, magnitude_spectrum_sum)
+    results['spectral_roll_off_0.5'] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.5, power_spectrum_sum)
+    results['spectral_roll_off_0.75'] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.75, power_spectrum_sum)
+    results['spectral_roll_off_0.9'] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.9, power_spectrum_sum)
+    results['spectral_roll_off_0.95'] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.95, power_spectrum_sum)
     results['zero_crossing_rate'] = zero_crossing_rate(audio, sample_rate)
     return results
 
@@ -57,15 +60,16 @@ def energy(audio: np.ndarray) -> cython.double:
 
 
 @cython.cfunc
-def spectral_centroid(magnitude_spectrum: np.ndarray, magnitude_freqs: np.ndarray) -> cython.double:
+def spectral_centroid(magnitude_spectrum: np.ndarray, magnitude_freqs: np.ndarray, magnitude_spectrum_sum) -> cython.double:
     """
     Calculates the spectral centroid from provided magnitude spectrum
     :param magnitude_spectrum: The magnitude spectrum
     :param magnitude_freqs: The magnitude frequencies
+    :param magnitude_spectrum_sum: The sum of the magnitude spectrum
     :return: The spectral centroid
     Reference: Eyben, pp. 39-40
     """
-    centroid = np.sum(np.multiply(magnitude_spectrum, magnitude_freqs)) / np.sum(magnitude_spectrum)
+    centroid = np.sum(np.multiply(magnitude_spectrum, magnitude_freqs)) / magnitude_spectrum_sum
     if np.isnan(centroid) or np.isneginf(centroid) or np.isinf(centroid):
         centroid = 0.0
     return centroid
@@ -88,14 +92,15 @@ def spectral_entropy(spectrum_pmf: np.ndarray) -> cython.double:
 
 
 @cython.cfunc
-def spectral_flatness(magnitude_spectrum: np.ndarray) -> cython.double:
+def spectral_flatness(magnitude_spectrum: np.ndarray, magnitude_spectrum_sum) -> cython.double:
     """
     Calculates the spectral flatness from provided magnitude spectrum
     :param magnitude_spectrum: The magnitude spectrum
+    :param magnitude_spectrum_sum: The sum of the magnitude spectrum
     :return: The spectral flatness, in dBFS
     Reference: Eyben, p. 39, https://en.wikipedia.org/wiki/Spectral_flatness
     """
-    flatness = np.exp(np.sum(np.log(magnitude_spectrum)) / magnitude_spectrum.size) / (np.sum(magnitude_spectrum) / magnitude_spectrum.size)
+    flatness = np.exp(np.sum(np.log(magnitude_spectrum)) / magnitude_spectrum.size) / (magnitude_spectrum_sum / magnitude_spectrum.size)
     flatness = 20 * np.log10(flatness)
     if np.isnan(flatness) or np.isneginf(flatness) or np.isinf(flatness):
         flatness = 0.0
@@ -156,23 +161,23 @@ def spectral_kurtosis(spectrum_pmf: np.ndarray, magnitude_freqs: np.ndarray, spe
 
 
 @cython.cfunc
-def spectral_roll_off_point(power_spectrum: np.ndarray, magnitude_freqs: np.ndarray, n: cython.double) -> cython.double:
+def spectral_roll_off_point(power_spectrum: np.ndarray, magnitude_freqs: np.ndarray, n: cython.double, power_spectrum_sum) -> cython.double:
     """
     Calculates the spectral slope from provided power spectrum
     :param power_spectrum: The power spectrum
     :param magnitude_freqs: The magnitude frequencies
     :param n: The roll-off, as a fraction (0 <= n <= 1.00)
+    :param power_spectrum_sum: The sum of the power spectrum
     :return: The roll-off frequency
     Reference: Eyben, p. 41
     """
     i: cython.int
     cumulative_energy: cython.double
-    energy = np.sum(power_spectrum)
     i = -1
     cumulative_energy = 0.0
     while cumulative_energy < n and i < magnitude_freqs.size - 1:
         i += 1
-        cumulative_energy += power_spectrum[i] / energy
+        cumulative_energy += power_spectrum[i] / power_spectrum_sum
     roll_off = magnitude_freqs[i]
     if np.isnan(roll_off) or np.isneginf(roll_off) or np.isinf(roll_off):
         roll_off = 0.0

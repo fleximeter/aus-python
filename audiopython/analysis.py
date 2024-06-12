@@ -6,7 +6,7 @@ Date: 12/17/23
 Audio analysis tools developed from Eyben, "Real-Time Speech and Music Classification"
 """
 
-import operations
+from . import operations
 from . import spectrum
 import librosa
 import numpy as np
@@ -31,8 +31,8 @@ def analyzer(audio, sample_rate, frequency_quantile=0.5):
     rfftfreqs = scipy.fft.rfftfreq(audio.shape[-1], 1/sample_rate)
     results["dbfs"] = operations.dbfs_audio(audio)
     results['energy'] = energy(audio)
-    results['pitch'] = librosa_pitch_estimation(audio, sample_rate, 27.5, 3520, frequency_quantile)
-    results['midi'] = midi_estimation_from_pitch(results['pitch'])
+    # results['pitch'] = librosa_pitch_estimation(audio, sample_rate, 27.5, 3520, frequency_quantile)
+    # results['midi'] = midi_estimation_from_pitch(results['pitch'])
     results['spectral_centroid'] = spectral_centroid(magnitude_spectrum, rfftfreqs)
     results['spectral_entropy'] = spectral_entropy(power_spectrum)
     results['spectral_flatness'] = spectral_flatness(magnitude_spectrum)
