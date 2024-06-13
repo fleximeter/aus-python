@@ -41,6 +41,10 @@ def analyzer(audio: np.ndarray, sample_rate: int) -> dict:
     results['spectral_roll_off_0.75'] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.75, power_spectrum_sum)
     results['spectral_roll_off_0.9'] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.9, power_spectrum_sum)
     results['spectral_roll_off_0.95'] = spectral_roll_off_point(power_spectrum, rfftfreqs, 0.95, power_spectrum_sum)
+    results['spectral_slope'] = spectral_slope(power_spectrum)
+    results['spectral_slope_0:1kHz'] = spectral_slope_region(power_spectrum, rfftfreqs, 0, 1000, sample_rate)
+    results['spectral_slope_1:5kHz'] = spectral_slope_region(power_spectrum, rfftfreqs, 1000, 5000, sample_rate)
+    results['spectral_slope_0:5kHz'] = spectral_slope_region(power_spectrum, rfftfreqs, 0, 5000, sample_rate)
     results['zero_crossing_rate'] = zero_crossing_rate(audio, sample_rate)
     return results
 
@@ -182,6 +186,66 @@ def spectral_roll_off_point(power_spectrum: np.ndarray, magnitude_freqs: np.ndar
     if np.isnan(roll_off) or np.isneginf(roll_off) or np.isinf(roll_off):
         roll_off = 0.0
     return roll_off
+
+
+@cython.cfunc
+def spectral_slope(power_spectrum: np.ndarray) -> cython.double:
+    """
+    Calculates the spectral slope from provided power spectrum.
+    :param power_spectrum: The power spectrum
+    :return: The slope
+    Reference: Eyben, pp. 35-38
+    """
+    N = power_spectrum.size
+    X = np.arange(0, N, 1)
+    sum_x = N * (N - 1) / 2
+    sum_x_2 = N * (N - 1) * (2 * N - 1) / 6
+    slope = (N * np.dot(power_spectrum, X) - sum_x * np.sum(power_spectrum)) / (N * sum_x_2 - sum_x ** 2)
+    return slope
+
+
+@cython.cfunc
+def spectral_slope_region(power_spectrum: np.ndarray, rfftfreqs: np.ndarray, f_lower: cython.double, f_upper: cython.double, sample_rate: cython.int) -> cython.double:
+    """
+    Calculates the spectral slope from provided power spectrum, between the frequencies
+    specified. The frequencies specified do not have to correspond to exact bin indices.
+    :param power_spectrum: The power spectrum
+    :param rfftfreqs: The FFT freqs for the power spectrum bins
+    :param f_lower: The lower frequency
+    :param f_upper: The upper frequency
+    :param sample_rate: The sample rate of the audio
+    :return: The slope
+    Reference: Eyben, pp. 35-38
+    """
+    # the fundamental frequency
+    f_0 = sample_rate / ((power_spectrum.size - 1) * 2)
+
+    # approximate bin indices for lower and upper frequencies
+    m_fl = f_lower / f_0
+    m_fu = f_upper / f_0
+
+    N = power_spectrum.size
+
+    m_fl_ceil = np.ceil(m_fl)
+    m_fl_floor = np.floor(m_fl)
+    m_fu_ceil = np.ceil(m_fu)
+    m_fu_floor = np.floor(m_fu)
+    
+    # these complicated formulas come from Eyben, p.37. The idea
+    # is to use interpolation in case the lower and upper frequencies
+    # do not correspond to exact bin indices.
+    sum_x = f_lower + np.sum(rfftfreqs[m_fl_ceil:m_fu_floor]) + f_upper
+    sum_y = power_spectrum[m_fl_floor] + (m_fl - m_fl_floor) * \
+        (power_spectrum[m_fl_ceil] - power_spectrum[m_fl_floor]) + \
+        np.sum(power_spectrum[m_fl_ceil:m_fu_floor]) + \
+        power_spectrum[m_fu_floor] + (m_fu - m_fu_floor) * (power_spectrum[m_fu_ceil] - power_spectrum[m_fu_floor])
+    sum_x_2 = f_lower ** 2 + np.sum(np.square(rfftfreqs[m_fl_ceil:m_fu_floor])) + f_upper ** 2
+    sum_xy = f_lower * (power_spectrum[m_fl_floor] + (m_fl - m_fl_floor) * (power_spectrum[m_fl_ceil] - power_spectrum[m_fl_floor])) + \
+        np.sum(np.multiply(power_spectrum[m_fl_ceil:m_fu_floor], rfftfreqs[m_fl_ceil:m_fu_floor])) + \
+        f_upper * (power_spectrum[m_fu_floor] + (m_fu - m_fu_floor) * (power_spectrum[m_fu_ceil] - power_spectrum[m_fu_floor]))
+
+    slope = (N * sum_xy - sum_x * sum_y) / (N * sum_x_2 - sum_x ** 2)
+    return slope
 
 
 @cython.cfunc
