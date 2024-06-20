@@ -16,7 +16,7 @@ def extract_samples(audio: np.ndarray, amplitude_regions: list, pre_frames_to_in
     """
     Extracts samples from an AudioFile.
     
-    :param audio: An AudioFile object
+    :param audio: A 2D numpy ndarray of audio samples
     :param amplitude_regions: A list of amplitude regions from the identify_amplitude_regions function
     :param pre_frames_to_include: If this is set to greater than 0, the sample will be extended backward
     to include these additional frames. This is useful for ensuring a clean sample onset.
@@ -31,57 +31,54 @@ def extract_samples(audio: np.ndarray, amplitude_regions: list, pre_frames_to_in
     
     :return: A list of AudioFile objects with the samples
     """
-    file_samples = np.hstack((
+    # Update the audio array with zero padding to allow for pre and post frames
+    audio = np.hstack((
         np.zeros((audio.shape[0], pre_frames_to_include), dtype=audio.dtype),
         audio,
         np.zeros((audio.shape[0], post_frames_to_include), dtype=audio.dtype)
     ))
+
+    # Holds the samples that we extract
     samples = []
 
-    # Adjust the samples to include frames before and after
-    for i, region in enumerate(amplitude_regions):
-        amplitude_regions[i] = (
-            region[0],
-            region[1] + pre_frames_to_include + post_frames_to_include
-        )
-
     # Create the samples
-    for sample in amplitude_regions:
-        new_audio_file = file_samples[:, sample[0]:sample[1]+1]
+    for region in amplitude_regions:
+        # Extract the samples. Note that since we zero-padded the start of the audio
+        # array, it is necessary to add the pre and post frames to the *last* index
+        # of the audio range.
+        sample = audio[region["channel"], region["range"][0]:region["range"][1]+1+pre_frames_to_include+post_frames_to_include]
+        sample = np.reshape(sample, (1,) + sample.shape)
 
         # Get the windows
-        pre_envelope = None
         if pre_envelope_type == "bartlett":
             pre_envelope = np.bartlett(pre_envelope_frames * 2)[:pre_envelope_frames]
         elif pre_envelope_type == "blackman":
             pre_envelope = np.blackman(pre_envelope_frames * 2)[:pre_envelope_frames]
-        elif pre_envelope_type == "hanning":
-            pre_envelope = np.hanning(pre_envelope_frames * 2)[:pre_envelope_frames]
         elif pre_envelope_type == "hamming":
             pre_envelope = np.hamming(pre_envelope_frames * 2)[:pre_envelope_frames]
-        post_envelope = None
+        else:
+            pre_envelope = np.hanning(pre_envelope_frames * 2)[:pre_envelope_frames]
+        
         if post_envelope_type == "bartlett":
             post_envelope = np.bartlett(post_envelope_frames * 2)[post_envelope_frames:]
         elif post_envelope_type == "blackman":
             post_envelope = np.blackman(post_envelope_frames * 2)[post_envelope_frames:]
-        elif post_envelope_type == "hanning":
-            post_envelope = np.hanning(post_envelope_frames * 2)[post_envelope_frames:]
         elif post_envelope_type == "hamming":
             post_envelope = np.hamming(post_envelope_frames * 2)[post_envelope_frames:]
+        else:
+            post_envelope = np.hanning(post_envelope_frames * 2)[post_envelope_frames:]
         
         # Apply the windows
         i: cython.int
         j: cython.int
-        if pre_envelope is not None:
-            for i in range(pre_envelope_frames):
-                for j in range(new_audio_file.shape[0]):
-                    new_audio_file[j, i] *= pre_envelope[i]
-        if post_envelope is not None:
-            for i in range(post_envelope_frames):
-                for j in range(new_audio_file.shape[0]):
-                    new_audio_file[j, new_audio_file.shape[1] - post_envelope_frames + i] *= post_envelope[i]
+        for i in range(pre_envelope_frames):
+            for j in range(sample.shape[0]):
+                sample[j, i] *= pre_envelope[i]
+        for i in range(post_envelope_frames):
+            for j in range(sample.shape[0]):
+                sample[j, sample.shape[1] - post_envelope_frames + i] *= post_envelope[i]
 
-        samples.append(new_audio_file)
+        samples.append(sample)
     
     return samples
 
@@ -140,12 +137,12 @@ def identify_amplitude_regions(audio: np.ndarray, level_delimiter: cython.double
                 else:
                     num_consecutive_below_threshold += 1
                     if current_region_active and num_consecutive_below_threshold >= num_consecutive:
-                        regions.append((i, current_region_start_frame, last_frame_above_threshold))
+                        regions.append({"channel": i, "range": (current_region_start_frame, last_frame_above_threshold)})
                         current_region_active = False
 
             # If we finish with a current region active, we need to close the region
             if current_region_active:
-                regions.append((i, current_region_start_frame, audio.shape[-1] - 1))
+                regions.append({"channel": i, "range": (current_region_start_frame, audio.shape[-1] - 1)})
     
     else:
         raise Exception("The audio must have samples in it, and it must be a 2D array, " \

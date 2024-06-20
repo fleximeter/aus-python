@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name="audiopython"
-version = "0.0.8"
+version = "0.0.9"
 authors = [
     { name="Jeffrey Martin", email="jmartin@jeffreymartincomposer.com" },
 ]
 description = "A package with functionality for offline audio processing"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 dependencies = [
     "matplotlib", 
     "numpy", 

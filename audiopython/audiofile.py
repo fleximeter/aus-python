@@ -19,9 +19,10 @@ http://midi.teragonaudio.com/tech/aiff.htm (AIFF)
 
 import numpy as np
 import math
-import struct
+import os
 import pedalboard as pb
 import re
+import struct
 
 LARGE_FIELD = 4
 SMALL_FIELD = 2
@@ -147,6 +148,27 @@ def convert(file: AudioFile, format: str):
         file.audio_format = 3
         file.bits_per_sample = format_bits
         file.bytes_per_sample = format_bits // 8
+
+
+def find_files(directory_name: str) -> list:
+    """
+    Finds all WAV and AIFF files within a directory (and its subdirectories, if recurse=True)
+
+    :param directory_name: The directory name
+    :param format: The destination format (supported formats are 'int16', 'int24', 'int32', 'float32',
+    and 'float64')
+    :return: A list of file names
+    """
+    files_audio = []
+    search = re.compile(r"(\.wav$)|(\.aif$)|(\.aiff$)")
+
+    for path, subdirectories, files in os.walk(directory_name):
+        for name in files:
+            result = search.search(name)
+            if result:
+                files_audio.append(os.path.join(path, name))
+
+    return files_audio
 
 
 def read(file_name: str) -> AudioFile:
