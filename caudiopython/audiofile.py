@@ -357,8 +357,12 @@ def read_wav(file_name: str, header_only=False) -> AudioFile:
                 # Detect if we've read a data subchunk. If this is something else
                 # (e.g. a JUNK subchunk), we ignore it.
                 elif subchunk_header[:4] == DATA_CHUNK_1:
-                    audio_file.frames = subchunk_size // (audio_file.num_channels * audio_file.bytes_per_sample)
-                    audio_file.duration = audio_file.frames / audio_file.sample_rate
+                    if audio_file.num_channels * audio_file.bytes_per_sample > 0:
+                        audio_file.frames = subchunk_size // (audio_file.num_channels * audio_file.bytes_per_sample)
+                        audio_file.duration = audio_file.frames / audio_file.sample_rate
+                    else:
+                        audio_file.frames = 1
+                        audio_file.duration = 1
 
                     if header_only:
                         remaining_size = 0

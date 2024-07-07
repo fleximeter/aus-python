@@ -22,9 +22,9 @@ def adjust_level(audio: np.ndarray, max_level: cython.double):
     :param max_level: The max level for the audio
     :return: The scaled audio
     """
-    current_rms = np.sqrt(np.average(np.square(audio), axis=audio.ndim-1))[0]
-    target_rms = 10 ** (max_level / 20)
-    return audio * (target_rms / current_rms)
+    current_level = np.max(audio)
+    target_level = 10 ** (max_level / 20)
+    return audio * (target_level / current_level)
 
 
 @cython.cfunc

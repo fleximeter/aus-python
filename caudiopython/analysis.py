@@ -167,7 +167,7 @@ def spectral_kurtosis(spectrum_pmf: np.ndarray, magnitude_freqs: np.ndarray, spe
 @cython.cfunc
 def spectral_roll_off_point(power_spectrum: np.ndarray, magnitude_freqs: np.ndarray, n: cython.double, power_spectrum_sum) -> cython.double:
     """
-    Calculates the spectral slope from provided power spectrum
+    Calculates the spectral roll off frequency from provided power spectrum
     :param power_spectrum: The power spectrum
     :param magnitude_freqs: The magnitude frequencies
     :param n: The roll-off, as a fraction (0 <= n <= 1.00)
