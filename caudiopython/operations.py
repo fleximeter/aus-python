@@ -9,6 +9,7 @@ This file allows you to perform operations on audio and FFT data.
 import cython
 import numpy as np
 import random
+from fractions import Fraction
 
 np.seterr(divide="ignore")
 _rng = random.Random()
@@ -98,14 +99,17 @@ def dbfs_min_local(audio: np.ndarray, chunk_size: cython.int = 10, hop_size: cyt
 
 
 @cython.cfunc
-def dbfs_sample(sample):
+def dbfs(audio):
     """
-    Calculates dbfs (decibels full scale) for an audio sample. This function assumes that the 
-    audio is in float format where 1 is the highest possible peak.
-    :param sample: The sample to calculate dbfs for
+    Calculates dbfs (decibels full scale) for an audio sequence or sample. 
+    This function assumes that the audio is in float format where 1 is the highest possible peak.
+    :param audio: The audio array or sample to calculate dbfs for
     :return: A float value representing the dbfs
     """
-    return 20 * np.log10(np.abs(sample))
+    if type(audio) == np.ndarray:
+        return 20 * np.log10(np.max(np.abs(audio)))
+    else:
+        return 20 * np.log10(audio)
 
 
 @cython.cfunc
@@ -369,3 +373,60 @@ def stochastic_exchanger(data: np.ndarray, max_hop: cython.int):
             idx += 1
 
     return new_data
+
+
+def beat_envelope(tempo, sample_rate, beat_sequence, envelope_type="hanning", envelope_duration=1000) -> np.ndarray:
+    """
+    Generates a beat envelope. You specify the tempo, and provide a list of beat durations in order.
+    This function will generate a volume envelope that can be applied to a sound file to make it
+    pulse with these beat durations.
+    :param tempo: The tempo
+    :param sample_rate: The audio sample rate
+    :param beat_sequence: A sequence of Fractions representing beat durations
+    :return: An array with the beat envelope
+    """
+    # the fade in/fade out envelope for each beat
+    
+    if envelope_type == "bartlett":
+        envelope_fn = np.bartlett
+    elif envelope_type == "blackman":
+        envelope_fn = np.blackman
+    elif envelope_type == "hamming":
+        envelope_fn = np.hamming
+    else:
+        envelope_fn = np.hanning
+
+    local_envelope = envelope_fn(envelope_duration)
+    envelope = np.zeros((0))
+    
+    # Track the number of beats that have elapsed so that we can adjust for quantization
+    CHECK_INT = 10
+    accumulated_beats = Fraction(0, 1)
+    accumulated_samples = 0
+
+    for i, beat in enumerate(beat_sequence):
+        beat_dur = int(Fraction(sample_rate, 1) * Fraction(60,tempo) * beat)
+        
+        # Track the accumulated beat durations to adjust for quantization
+        accumulated_beats += beat
+        accumulated_samples += beat_dur
+
+        # Check total duration every N beats
+        if i % CHECK_INT == CHECK_INT - 1:
+            # The total number of samples that should have elapsed
+            total_samples = int(Fraction(sample_rate, 1) * Fraction(60,tempo) * accumulated_beats)
+            
+            # The difference between that and the number of samples that have actually elapsed
+            difference = accumulated_samples - total_samples
+
+            # Adjust the beat duration of the Nth beat to avoid quantization error
+            beat_dur -= difference
+            accumulated_samples -= difference
+        
+        if beat_dur > envelope_duration:
+            current_beat = np.hstack((local_envelope[:envelope_duration//2], np.ones((beat_dur - envelope_duration)), local_envelope[envelope_duration//2:]))
+        else:
+            current_beat = envelope_fn(beat_dur)
+        envelope = np.hstack((envelope, current_beat))
+    
+    return envelope
