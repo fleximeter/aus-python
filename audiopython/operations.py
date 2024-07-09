@@ -383,6 +383,9 @@ def beat_envelope(tempo, sample_rate, beat_sequence, envelope_type="hanning", en
     :param tempo: The tempo
     :param sample_rate: The audio sample rate
     :param beat_sequence: A sequence of Fractions representing beat durations
+    :param envelope_type: The envelope used for fade-in and fade-out on each beat
+    :param envelope_duration: The envelope duration. The envelope will be split in half and applied to the beginning and end of the beat.
+    If the beat is too short, a shorter envelope will be generated for that beat.
     :return: An array with the beat envelope
     """
     # the fade in/fade out envelope for each beat
@@ -427,6 +430,74 @@ def beat_envelope(tempo, sample_rate, beat_sequence, envelope_type="hanning", en
             current_beat = np.hstack((local_envelope[:envelope_duration//2], np.ones((beat_dur - envelope_duration)), local_envelope[envelope_duration//2:]))
         else:
             current_beat = envelope_fn(beat_dur)
+        envelope = np.hstack((envelope, current_beat))
+    
+    return envelope
+
+
+def beat_envelope_multichannel(tempo: float, sample_rate: int, beat_sequence: list, num_channels: int, channel_levels: list, envelope_type="hanning", envelope_duration=1000) -> np.ndarray:
+    """
+    Generates a multichannel beat envelope. You specify the tempo, and provide a list of N beat durations in order.
+    You also specify the number of output channels M and a list of level tuples NxM - one level coefficient for each channel,
+    for each beat.
+    This function will generate a volume envelope that can be applied to a sound file to make it
+    pulse with these beat durations. You will need to provide a multichannel sound file with the correct number of channels
+    when you apply the envelope.
+    :param tempo: The tempo
+    :param sample_rate: The audio sample rate
+    :param beat_sequence: A sequence of Fractions representing beat durations
+    :param num_channels: The number of channels in the envelope
+    :param channel_levels: A list of channel level tuples (or lists). Each sublist corresponds to the level coefficients for the current beat.
+    :param envelope_type: The envelope used for fade-in and fade-out on each beat
+    :param envelope_duration: The envelope duration. The envelope will be split in half and applied to the beginning and end of the beat.
+    If the beat is too short, a shorter envelope will be generated for that beat.
+    :return: An array with the beat envelope
+    """
+    # the fade in/fade out envelope for each beat
+    
+    if envelope_type == "bartlett":
+        envelope_fn = np.bartlett
+    elif envelope_type == "blackman":
+        envelope_fn = np.blackman
+    elif envelope_type == "hamming":
+        envelope_fn = np.hamming
+    else:
+        envelope_fn = np.hanning
+
+    local_envelope = envelope_fn(envelope_duration)
+    envelope = np.zeros((num_channels, 0))
+    
+    # Track the number of beats that have elapsed so that we can adjust for quantization
+    CHECK_INT = 10
+    accumulated_beats = Fraction(0, 1)
+    accumulated_samples = 0
+
+    for i, beat in enumerate(beat_sequence):
+        beat_dur = int(Fraction(sample_rate, 1) * beat * Fraction(60, 1) / Fraction(tempo))
+        
+        # Track the accumulated beat durations to adjust for quantization
+        accumulated_beats += beat
+        accumulated_samples += beat_dur
+
+        # Check total duration every N beats
+        if i % CHECK_INT == CHECK_INT - 1:
+            # The total number of samples that should have elapsed
+            total_samples = int(Fraction(sample_rate, 1) * Fraction(60,tempo) * accumulated_beats)
+            
+            # The difference between that and the number of samples that have actually elapsed
+            difference = accumulated_samples - total_samples
+
+            # Adjust the beat duration of the Nth beat to avoid quantization error
+            beat_dur -= difference
+            accumulated_samples -= difference
+        
+        if beat_dur > envelope_duration:
+            current_beat = np.hstack((local_envelope[:envelope_duration//2], np.ones((beat_dur - envelope_duration)), local_envelope[envelope_duration//2:]))
+        else:
+            current_beat = envelope_fn(beat_dur)
+
+        # Apply channel-specific levels
+        current_beat = np.vstack([current_beat * channel_levels[i][j] for j in range(len(channel_levels[i]))])
         envelope = np.hstack((envelope, current_beat))
     
     return envelope
