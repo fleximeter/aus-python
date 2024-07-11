@@ -1,14 +1,38 @@
 # audiopython
 
 ## Introduction
-This is a Python library for working with audio.
+This is a Python library for working with audio. It comes in two flavors - a regular Python version called `pyaudiopython`, contained in the `pyaudiopython` directory, and a Cython version called `caudiopython`, contained in the `caudiopython` directory. There is a separate directory called `audiopython` that is set up for building a package - at the moment, this directory contains a copy of the Cython version.
+
+You can install this library from PyPi by running the command `pip install audiopython`. This will install the Cython version, which is only compiled for Windows at the moment. You can also build the package yourself on your own computer if you wish. Or you can use individual modules in the `pyaudiopython` or `caudiopython` directories.
+
+The package is divided into 8 modules:
+
+### `audiopython.analysis`
+Tools for spectral analysis and analysis of audio waveforms. Many of these tools are based on formulas from Florian Eyben's "Real-Time Speech and Music Classification," published by Springer in 2016. Among other things, this module computes spectral centroid, entropy, slope, and flatness.
+
+### `audiopython.audiofile`
+This module is for reading and writing audio files, using either the `pedalboard` library or using (slower) code provided here.
+
+### `audiopython.granulator`
+Funtionality for grain extraction
+
+### `audiopython.operations`
+This module has various operations that can be performed on audio, such as spectral frame swapping, equal energy forcing, dc bias removal, and beat envelope generation.
+
+### `audiopython.plot`
+Plotting functionality for audio and spectrum
+
+### `audiopython.sampler`
+Tools for extracting samples from audio
+
+### `audiopython.spectrum`
+Tools for spectral analysis
+
+### `audiopython.synthesis`
+Tools for generating simple waveforms
 
 ## Dependencies
-You will need the following Python libraries: `matplotlib`, `numpy`, `pedalboard`, `regex`, `scipy`
+You will need the following Python libraries: `matplotlib`, `numpy`, `pedalboard`, `regex`, `scipy`. You will also need `Cython` if you want to build the Cython version.
 
 ## Building
-To build this package, run `python -m build`. To upload to PyPi, run `twine upload dist/*`.
-You should take care to copy the latest files from the `caudiopython` directory to the `audiopython` directory before building, and also make sure to update the package version in `pyproject.toml`.
-
-## Directories
-The `audiopython` directory contains the files that will be incorporated into the package. The `caudiopython` directory is a development directory for the Cython version of `audiopython`, and the `pyaudiopython` directory is the development directory for the Python version of `audiopython`.
+To build this package, run `python -m build`.
