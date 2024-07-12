@@ -538,12 +538,18 @@ def panner(num_channels: cython.int, start_pos: cython.int, end_pos: cython.int,
 @cython.cfunc
 def pan_mapper(pan_coefficients: np.ndarray, mapper: np.ndarray):
     """
-    Maps pan positions to the actual speakers.
+    Maps pan positions to actual speaker positions. You pass a mapping array 
+    that lists the speaker numbers in panning order.
     
     This is useful if you want to use a different numbering system for your 
     pan positions than the numbering system used for the actual output channels.
     For example, you might want to pan in a circle for a quad-channel setup,
     but the hardware is set up for stereo pairs.
+
+    Example: Suppose you have a quad setup. Your mapper would be [0, 1, 3, 2] 
+    if you are thinking clockwise, or [1, 0, 2, 3] if you are thinking counterclockwise. 
+    If you have an 8-channel setup, your mapper would be [0, 1, 3, 5, 7, 6, 4, 2] 
+    for clockwise and [1, 0, 2, 4, 6, 7, 5, 3] for counterclockwise.
     
     :param pan_coefficients: A list of pan coefficient lists
     :param mapper: The mapper for reordering the pan coefficients
@@ -552,11 +558,11 @@ def pan_mapper(pan_coefficients: np.ndarray, mapper: np.ndarray):
     newlist = np.zeros(pan_coefficients.shape)
     if pan_coefficients.ndim == 1:
         for j, pos in enumerate(mapper):
-            newlist[j] = pan_coefficients[pos]
+            newlist[pos] = pan_coefficients[j]
     elif pan_coefficients.ndim == 2:
         for i in range(pan_coefficients.shape[0]):
             for j, pos in enumerate(mapper):
-                newlist[i, j] = pan_coefficients[i, pos]
+                newlist[i, pos] = pan_coefficients[i, j]
     return newlist
 
 

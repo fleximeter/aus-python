@@ -520,12 +520,18 @@ def panner(num_channels, start_pos, end_pos, num_iterations):
 
 def pan_mapper(pan_coefficients, mapper):
     """
-    Maps pan positions to the actual speakers.
+    Maps pan positions to actual speaker positions. You pass a mapping array 
+    that lists the speaker numbers in panning order.
     
     This is useful if you want to use a different numbering system for your 
     pan positions than the numbering system used for the actual output channels.
     For example, you might want to pan in a circle for a quad-channel setup,
     but the hardware is set up for stereo pairs.
+
+    Example: Suppose you have a quad setup. Your mapper would be [0, 1, 3, 2] 
+    if you are thinking clockwise, or [1, 0, 2, 3] if you are thinking counterclockwise. 
+    If you have an 8-channel setup, your mapper would be [0, 1, 3, 5, 7, 6, 4, 2] 
+    for clockwise and [1, 0, 2, 4, 6, 7, 5, 3] for counterclockwise.
     
     :param pan_coefficients: A list of pan coefficient lists
     :param mapper: The mapper for reordering the pan coefficients
@@ -533,9 +539,9 @@ def pan_mapper(pan_coefficients, mapper):
     """
     newlist = []
     for i in range(len(pan_coefficients)):
-        coefficient_arr = []
-        for pos in mapper:
-            coefficient_arr.append(pan_coefficients[i][pos])
+        coefficient_arr = [0 for i in range(len(mapper))]
+        for j, pos in enumerate(mapper):
+            coefficient_arr[pos] = pan_coefficients[i][j]
         newlist.append(coefficient_arr)
     return newlist
 
