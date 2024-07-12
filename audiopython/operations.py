@@ -532,10 +532,11 @@ def panner(num_channels: cython.int, start_pos: cython.int, end_pos: cython.int,
             coefficients[pos+1] = np.sin(np.pi * frac / 2)
         
         pan_coefficients.append(coefficients)
-    return np.hstack(pan_coefficients)
+    return np.vstack(pan_coefficients)
 
 
-def pan_mapper(pan_coefficients: list, mapper):
+@cython.cfunc
+def pan_mapper(pan_coefficients: np.ndarray, mapper: np.ndarray):
     """
     Maps pan positions to the actual speakers.
     
@@ -548,16 +549,19 @@ def pan_mapper(pan_coefficients: list, mapper):
     :param mapper: The mapper for reordering the pan coefficients
     :return: A new, mapped pan coefficient list
     """
-    newlist = []
-    for i in range(len(pan_coefficients)):
-        coefficient_arr = []
-        for pos in mapper:
-            coefficient_arr.append(pan_coefficients[i][pos])
-        newlist.append(coefficient_arr)
+    newlist = np.zeros(pan_coefficients.shape)
+    if pan_coefficients.ndim == 1:
+        for j, pos in enumerate(mapper):
+            newlist[j] = pan_coefficients[pos]
+    elif pan_coefficients.ndim == 2:
+        for i in range(pan_coefficients.shape[0]):
+            for j, pos in enumerate(mapper):
+                newlist[i, j] = pan_coefficients[i, pos]
     return newlist
 
 
-def pan_level_adjuster(pan_levels: list):
+@cython.cfunc
+def pan_level_adjuster(pan_levels: np.ndarray):
     """
     Adjusts pan levels in a list for a power sum of 1. The values in the list should be fractional 
     volume levels that sum to 1. After applying this operations, the values in the list will be adjusted
@@ -570,6 +574,12 @@ def pan_level_adjuster(pan_levels: list):
 
     :param pan_levels: A list of pan levels (one level for each channel)
     """
-    scaler = 1 / np.sqrt(np.sum(np.square(np.array(pan_levels))))
-    for i in range(len(pan_levels)):
-        pan_levels[i] *= scaler
+    if pan_levels.ndim == 1:
+        scaler = 1 / np.sqrt(np.sum(np.square(pan_levels)))
+        pan_levels = np.multiply(pan_levels, scaler, out=pan_levels)
+    
+    else:
+        i: cython.int
+        for i in range(pan_levels.shape[0]):
+            scaler = 1 / np.sqrt(np.sum(np.square(pan_levels[i])))
+            pan_levels[i] *= scaler
