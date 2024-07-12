@@ -7,6 +7,7 @@ This file allows you to perform operations on audio and FFT data.
 """
 
 import librosa
+import math
 import numpy as np
 import random
 from fractions import Fraction
@@ -485,3 +486,73 @@ def beat_envelope_multichannel(tempo: float, sample_rate: int, beat_sequence: li
         envelope = np.hstack((envelope, current_beat))
     
     return envelope
+
+
+def panner(num_channels, start_pos, end_pos, num_iterations):
+    """
+    Equal power panner, moving from start_pos to end_pos over num_iterations.
+    It generates a list of pan coefficients (each coefficient is the volume coefficient
+    for the corresponding channel).
+
+    :param num_channels: The number of channels
+    :param start_pos: The start panning position
+    :param end_pos: The end panning position
+    :param num_iterations: The number of steps to take to move from start_pos to end_pos
+    :return: An array of pan coefficients
+    """
+    pos_arr = np.linspace(start_pos, end_pos, num_iterations)
+    for i in range(pos_arr.shape[-1]):
+        pos_arr[i] %= num_channels
+    pan_coefficients = []
+    for i in range(pos_arr.shape[-1]):
+        frac, pos = math.modf(float(pos_arr[i]))
+        pos = int(pos)
+        coefficients = [0 for i in range(num_channels)]
+
+        # Equal power panning
+        coefficients[pos] = np.cos(np.pi * frac / 2)
+        if pos+1 < num_channels:
+            coefficients[pos+1] = np.sin(np.pi * frac / 2)
+        
+        pan_coefficients.append(coefficients)
+    return pan_coefficients
+
+
+def pan_mapper(pan_coefficients, mapper):
+    """
+    Maps pan positions to the actual speakers.
+    
+    This is useful if you want to use a different numbering system for your 
+    pan positions than the numbering system used for the actual output channels.
+    For example, you might want to pan in a circle for a quad-channel setup,
+    but the hardware is set up for stereo pairs.
+    
+    :param pan_coefficients: A list of pan coefficient lists
+    :param mapper: The mapper for reordering the pan coefficients
+    :return: A new, mapped pan coefficient list
+    """
+    newlist = []
+    for i in range(len(pan_coefficients)):
+        coefficient_arr = []
+        for pos in mapper:
+            coefficient_arr.append(pan_coefficients[i][pos])
+        newlist.append(coefficient_arr)
+    return newlist
+
+
+def pan_level_adjuster(pan_levels: list):
+    """
+    Adjusts pan levels in a list for a power sum of 1. The values in the list should be fractional 
+    volume levels that sum to 1. After applying this operations, the values in the list will be adjusted
+    so that their squares now sum to 1. The levels are adjusted in place.
+
+    The idea is that you might want to arbitrarily divide the total volume of a sound over several
+    channels. However, you want the sum of the signal power to equal to 1. So you need to
+    adjust these fractional levels so that the power sum is correct. This function computes
+    a scalar that is applied to all of the pan levels to make the summed power level equal to 1.
+
+    :param pan_levels: A list of pan levels (one level for each channel)
+    """
+    scaler = 1 / np.sqrt(np.sum(np.square(np.array(pan_levels))))
+    for i in range(len(pan_levels)):
+        pan_levels[i] *= scaler
