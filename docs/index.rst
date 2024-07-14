@@ -20,13 +20,19 @@ To use audiopython, first install it using pip:
 
 
 Contents:
-=========
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   source/analysis
    source/audiofile
-
+   source/granulator
+   source/operations
+   source/plot
+   source/sampler
+   source/spectrum
+   source/synthesis
 
 
 Indices and tables
