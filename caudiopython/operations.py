@@ -505,16 +505,18 @@ def beat_envelope_multichannel(tempo: float, sample_rate: int, beat_sequence: li
 
 
 @cython.cfunc
-def panner(num_channels: cython.int, start_pos: cython.int, end_pos: cython.int, num_iterations: cython.int):
+def panner(num_channels: cython.int, start_pos: cython.int, end_pos: cython.int, num_iterations: cython.int, pan_law: str = "constant_power"):
     """
-    Equal power panner, moving from start_pos to end_pos over num_iterations.
+    Multichannel panner, moving from start_pos to end_pos over num_iterations.
     It generates a list of pan coefficients (each coefficient is the volume coefficient
     for the corresponding channel).
+    (https://www.cs.cmu.edu/~music/icm-online/readings/panlaws/panlaws.pdf)
 
     :param num_channels: The number of channels
     :param start_pos: The start panning position
     :param end_pos: The end panning position
     :param num_iterations: The number of steps to take to move from start_pos to end_pos
+    :param pan_law: The pan law ("linear", "constant_power", "neg_4_5_db")
     :return: An array of pan coefficients
     """
     i: cython.int
@@ -523,13 +525,26 @@ def panner(num_channels: cython.int, start_pos: cython.int, end_pos: cython.int,
     pan_coefficients = []
     for i in range(pos_arr.shape[-1]):
         frac, pos = math.modf(float(pos_arr[i]))
-        pos = int(pos)
+        pos = int(pos) % num_channels
+        next_pos = (pos + 1) % num_channels
         coefficients = np.zeros((num_channels))
 
-        # Equal power panning
-        coefficients[pos] = np.cos(np.pi * frac / 2)
-        if pos+1 < num_channels:
-            coefficients[pos+1] = np.sin(np.pi * frac / 2)
+        # Constant power panning
+        if pan_law == "constant_power":
+            theta = frac * np.pi / 2
+            coefficients[pos] = np.cos(theta)
+            coefficients[next_pos] = np.sin(theta)
+
+        # -4.5 dB panning
+        elif pan_law == "neg_4_5_db":
+            theta = frac * np.pi / 2
+            coefficients[pos] = np.sqrt((np.pi / 2 - theta) * 2 / np.pi * np.cos(theta))
+            coefficients[next_pos] = np.sqrt(frac * np.sin(theta))
+        
+        # Linear panning
+        else:
+            coefficients[pos] = 1 - frac
+            coefficients[next_pos] = frac
         
         pan_coefficients.append(coefficients)
     return np.vstack(pan_coefficients)
