@@ -1,0 +1,6 @@
+build
+setuptools
+setuptools-scm
+wheel
+cython
+numpy
