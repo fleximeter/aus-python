@@ -4,11 +4,21 @@
    contain the root `toctree` directive.
 
 Welcome to the documentation for audiopython!
-=======================================
+=============================================
+
+Usage
+=====
+
+Installation
+------------
+
+To use audiopython, first install it using pip:
+
+.. code-block:: console
+
+    (.venv) $ pip install audiopython
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
 
    audiofile
 
