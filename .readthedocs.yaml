@@ -11,8 +11,8 @@ build:
     python: "3.8"
 
 sphinx:
-  configuration: docs/conf.py
+  configuration: conf.py
 
 python:
   install:
-  - requirements: docs/requirements.txt
+  - requirements: requirements.txt
