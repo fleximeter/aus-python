@@ -260,7 +260,7 @@ def leak_dc_bias_filter(audio: np.ndarray):
 def cpsmidi(freq: cython.double) -> cython.double:
     """
     Calculates the MIDI note of a provided frequency
-    :param midi_note: The frequency in Hz
+    :param freq: The frequency in Hz
     :return: The MIDI note
     """
     midi = np.log2(freq / 440) * 12 + 69
@@ -286,7 +286,7 @@ def midicps(midi_note: cython.double) -> cython.double:
 def midiratio(interval: cython.double) -> cython.double:
     """
     Calculates the MIDI ratio of a specified midi interval
-    :param midi_note: The MIDI interval in half steps
+    :param interval: The MIDI interval in half steps
     :return: The ratio
     """
     ratio = 2 ** (interval / 12)
@@ -376,7 +376,7 @@ def stochastic_exchanger(data: np.ndarray, max_hop: cython.int):
     return new_data
 
 
-def beat_envelope(tempo, sample_rate, beat_sequence, envelope_type="hanning", envelope_duration=1000) -> np.ndarray:
+def beat_envelope(tempo: float, sample_rate: int, beat_sequence: list, envelope_type: str = "hanning", envelope_duration: int = 1000) -> np.ndarray:
     """
     Generates a beat envelope. You specify the tempo, and provide a list of beat durations in order.
     This function will generate a volume envelope that can be applied to a sound file to make it
@@ -436,7 +436,7 @@ def beat_envelope(tempo, sample_rate, beat_sequence, envelope_type="hanning", en
     return envelope
 
 
-def beat_envelope_multichannel(tempo: float, sample_rate: int, beat_sequence: list, num_channels: int, channel_levels: list, envelope_type="hanning", envelope_duration=1000) -> np.ndarray:
+def beat_envelope_multichannel(tempo: float, sample_rate: int, beat_sequence: list, num_channels: int, channel_levels: list, envelope_type="hanning", envelope_duration: int = 1000) -> np.ndarray:
     """
     Generates a multichannel beat envelope. You specify the tempo, and provide a list of N beat durations in order.
     You also specify the number of output channels M and a list of level tuples NxM - one level coefficient for each channel,

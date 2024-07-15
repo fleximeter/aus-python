@@ -180,15 +180,15 @@ def read(file_name: str) -> AudioFile:
     """
     audio = None
     if re.search(r'(\.aif$)|(\.aiff$)', file_name):
-        audio = read_aiff(file_name, True)
+        audio = _read_aiff(file_name, True)
     elif re.search(r'\.wav$', file_name):
-        audio = read_wav(file_name, True)
+        audio = _read_wav(file_name, True)
     with pb.io.AudioFile(file_name, 'r') as infile:
         audio.samples = infile.read(infile.frames)
     return audio
 
 
-def read_aiff(file_name: str, header_only=False) -> AudioFile:
+def _read_aiff(file_name: str, header_only=False) -> AudioFile:
     """
     Reads an AIFF file and returns an AudioFile object with the data. Currently this implementation
     supports reading fixed (int) files up to 64-bit. Larger files could be supported, but who would 
@@ -280,7 +280,7 @@ def read_aiff(file_name: str, header_only=False) -> AudioFile:
         raise RuntimeWarning(f"The AIFF file {file_name} was unusually formatted and could not be read.")
 
 
-def read_wav(file_name: str, header_only=False) -> AudioFile:
+def _read_wav(file_name: str, header_only=False) -> AudioFile:
     """
     Reads a WAV file and returns an AudioFile object with the data. Currently this implementation
     supports reading fixed (int) files up to 32-bit and float files up to 64-bit. Larger files could
@@ -415,7 +415,7 @@ def read_wav(file_name: str, header_only=False) -> AudioFile:
         raise RuntimeWarning(f"The WAV file {file_name} was unusually formatted and could not be read. This might be because you tried to read a WAV file that was not in PCM format.")
     
 
-def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
+def _write_wav(file: AudioFile, path: str, write_junk_chunk=False):
     """
     Writes an audio file. Note that the audio_format must match the format used! For example,
     you cannot specify an audio_format of 3 (float) and use PCM (int32) data in the samples.
@@ -495,7 +495,7 @@ def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
             raise Exception(message="Invalid audio format.")
 
 
-def write_aiff(file: AudioFile, path: str):
+def _write_aiff(file: AudioFile, path: str):
     """
     Writes an audio file. Note that the audio_format must match the format used! For example,
     you cannot specify an audio_format of 3 (float) and use PCM (int32) data in the samples.

@@ -217,15 +217,15 @@ def read(file_name: str) -> AudioFile:
     """
     audio = None
     if re.search(r'(\.aif$)|(\.aiff$)', file_name):
-        audio = read_aiff(file_name, True)
+        audio = _read_aiff(file_name, True)
     elif re.search(r'\.wav$', file_name):
-        audio = read_wav(file_name, True)
+        audio = _read_wav(file_name, True)
     with pb.io.AudioFile(file_name, 'r') as infile:
         audio.samples = infile.read(infile.frames)
     return audio
 
 
-def read_aiff(file_name: str, header_only=False) -> AudioFile:
+def _read_aiff(file_name: str, header_only=False) -> AudioFile:
     """
     Reads an AIFF file and returns an AudioFile object with the data. Currently this implementation
     supports reading fixed (int) files up to 64-bit. Larger files could be supported, but who would 
@@ -317,7 +317,7 @@ def read_aiff(file_name: str, header_only=False) -> AudioFile:
         raise RuntimeWarning(f"The AIFF file {file_name} was unusually formatted and could not be read.")
 
 
-def read_wav(file_name: str, header_only=False) -> AudioFile:
+def _read_wav(file_name: str, header_only=False) -> AudioFile:
     """
     Reads a WAV file and returns an AudioFile object with the data. Currently this implementation
     supports reading fixed (int) files up to 32-bit and float files up to 64-bit. Larger files could
@@ -448,49 +448,7 @@ def read_wav(file_name: str, header_only=False) -> AudioFile:
         raise RuntimeWarning(f"The WAV file {file_name} was unusually formatted and could not be read. This might be because you tried to read a WAV file that was not in PCM format.")
 
 
-def visualize_audio_file(file: AudioFile, channels=None, frames=None):
-    """
-    Visualizes a WAV file using matplotlib. This visualizer can only visualize one channel
-    at a time.
-    :param file: An AudioFile object
-    :param channels: The channels to visualize, as a list or tuple. If None, will visualize
-    all channels.
-    :param frames: A list or tuple containing a range of frames to visualize. If None, will
-    visualize all frames.
-    """
-    if channels is None:
-        channels = [i for i in range(file.num_channels)]
-    if type(channels) == int:
-        channels = [channels]
-    
-    # Get the frames to visualize
-    if frames is None:
-        ys = [file.samples[i, :] for i in channels]
-        x = [i for i in range(file.frames)]
-    else:
-        ys = [file.samples[i, frames[0]:frames[1]] for i in channels]
-        x = [i for i in range(frames[0], frames[1])]
-    
-    fig, axs = plt.subplots(nrows=len(channels), ncols=1)
-    fig.suptitle(f"WAV File Visualization for {file.file_name}")
-    
-    if len(channels) > 1:
-        for i in range(len(channels)):
-            axs[i].set_xlabel("Frame Index")
-            axs[i].set_ylabel("Amplitude")
-            axs[i].set_title(f"Channel {channels[i] + 1}")
-            axs[i].plot(x, ys[i])
-    else:
-        axs.set_xlabel("Frame Index")
-        axs.set_ylabel("Amplitude")
-        axs.set_title(f"Channel 1")
-        axs.plot(x, ys[0])
-    
-    fig.tight_layout()
-    plt.show()
-    
-
-def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
+def _write_wav(file: AudioFile, path: str, write_junk_chunk=False):
     """
     Writes an audio file. Note that the audio_format must match the format used! For example,
     you cannot specify an audio_format of 3 (float) and use PCM (int32) data in the samples.
@@ -570,7 +528,7 @@ def write_wav(file: AudioFile, path: str, write_junk_chunk=False):
             raise Exception(message="Invalid audio format.")
 
 
-def write_aiff(file: AudioFile, path: str):
+def _write_aiff(file: AudioFile, path: str):
     """
     Writes an audio file. Note that the audio_format must match the format used! For example,
     you cannot specify an audio_format of 3 (float) and use PCM (int32) data in the samples.

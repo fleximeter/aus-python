@@ -91,7 +91,7 @@ def identify_amplitude_regions(audio: np.ndarray, level_delimiter: cython.double
     breached, we start a new amplitude region which ends when we return below the threshold. This is
     useful for pulling out individual samples from a file that has multiple samples in it.
 
-    :param audio: An AudioFile object
+    :param audio: An audio array
     :param level_delimiter: The lowest level (dBFS) allowed in a region. This will be scaled by the maximum amplitude
     in the audio file channel that is being analyzed, unless that feature is turned off by the next parameter. 
     :param num_consecutive: The number of consecutive samples below the threshold required to end a region.
@@ -99,7 +99,6 @@ def identify_amplitude_regions(audio: np.ndarray, level_delimiter: cython.double
     if an amplitude region is ending.
     :param scale_level_delimiter: Whether or not to scale the level delimiter by the maximum amplitude in
     the audio file channel that is being analyzed
-    :param channel_index: The index of the channel in the AudioFile to study
     
     :return: A list of tuples. Each tuple contains the starting and ending frame index of an amplitude region.
     """
@@ -183,10 +182,9 @@ def fit_amplitude_envelope(audio: np.ndarray, chunk_width: cython.int = 5000) ->
     """
     Fits an amplitude envelope to a provided audio file.
     Detects peaks in an audio file. Peaks are identified by being surrounded by lower absolute values to either side.
-    :param audio: An AudioFile object with the contents of a WAV file
+    :param audio: An audio array
     :param chunk_width: The AudioFile is segmented into adjacent chunks, and we look for the highest peak amplitude 
     in each chunk.
-    :param channel_index: The index of the channel to scan for peaks
     :return: Returns a list of tuples; the tuple has a channel, an index, and an amplitude value.
     """
     i: cython.int
@@ -219,7 +217,7 @@ def detect_major_peaks(audio: np.ndarray, min_percentage_of_max: cython.double =
     of that peak. (For example, suppose the highest peak is 1, and the min_percentage_of_max is 0.9. Then any peak with
     amplitude from 0.9 to 1 will be considered a major peak.)
     
-    :param audio: An AudioFile object with the contents of a WAV file
+    :param audio: An audio array
     :param min_percentage_of_max: A peak must be at least this percentage of the maximum peak to be included as a major
     peak.
     :param chunk_width: The width of the chunk to search for the highest peak

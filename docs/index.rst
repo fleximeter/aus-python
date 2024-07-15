@@ -18,9 +18,6 @@ To use audiopython, first install it using pip:
 
     (.venv) $ pip install audiopython
 
-
-Contents:
-
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
