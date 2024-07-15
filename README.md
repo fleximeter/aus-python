@@ -5,6 +5,10 @@ This is a Python library for working with audio. It comes in two flavors - a reg
 
 You can install this library from PyPi by running the command `pip install audiopython`. This will install the Cython version, which is only compiled for Windows at the moment. You can also build the package yourself on your own computer if you wish. Or you can use individual modules in the `pyaudiopython` or `caudiopython` directories.
 
+## Documentation
+Documentation is available at https://audiopython.readthedocs.io/en/latest/.
+
+## Modules
 The package is divided into 8 modules:
 
 ### `audiopython.analysis`
