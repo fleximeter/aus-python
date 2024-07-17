@@ -16,7 +16,7 @@ To use aus, first install it using pip:
 
 .. code-block:: console
 
-    (.venv) $ pip install aus
+    (.venv) $ pip install aus-python
 
 .. toctree::
    :maxdepth: 2
