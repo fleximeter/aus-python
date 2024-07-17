@@ -11,4 +11,4 @@ extensions = [
     Extension("synthesis", ["synthesis.py"], include_dirs=[np.get_include()]),
 ]
 
-setup(name="audiopython", ext_modules=cythonize(extensions))
+setup(name="aus", ext_modules=cythonize(extensions))

@@ -1,4 +1,4 @@
-audiopython.spectrum
+aus.spectrum
 ##############################
 
 .. py:function:: fft_data_decompose(fft_data: np.ndarray)

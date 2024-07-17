@@ -3,8 +3,8 @@ requires = ["setuptools", "setuptools-scm", "wheel", "cython", "numpy"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name="audiopython"
-version = "0.0.23"
+name="aus"
+version = "0.0.24"
 authors = [
     { name="Jeffrey Martin", email="jmartin@jeffreymartincomposer.com" },
 ]
@@ -28,4 +28,4 @@ classifiers = [
 "Homepage" = "https://fleximeter.github.io/"
 
 [tool.setuptools]
-packages = ["audiopython"]
+packages = ["aus"]

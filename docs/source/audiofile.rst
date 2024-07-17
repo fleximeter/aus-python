@@ -1,4 +1,4 @@
-audiopython.audiofile
+aus.audiofile
 ##############################
 
 .. py:class:: AudioFile

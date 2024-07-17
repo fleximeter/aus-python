@@ -1,4 +1,4 @@
-audiopython.operations
+aus.operations
 ##############################
 
 .. py:function:: adjust_level(audio: np.ndarray, max_level: float)

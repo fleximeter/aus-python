@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'audiopython'
+project = 'aus'
 copyright = '2024, Jeff Martin'
 author = 'Jeff Martin'
 release = '0.0.23'

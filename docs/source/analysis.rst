@@ -1,4 +1,4 @@
-audiopython.analysis
+aus.analysis
 ##############################
 
 Audio analysis tools developed from Eyben, "Real-Time Speech and Music Classification."

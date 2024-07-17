@@ -1,4 +1,4 @@
-audiopython.plot
+aus.plot
 ##############################
 
 .. py:function:: plot_audio(audio: np.ndarray)

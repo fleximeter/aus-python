@@ -1,4 +1,4 @@
-audiopython.granulator
+aus.granulator
 ######################
 
 .. py:function:: extract_grain(audio: np.ndarray, start_point: cython.int = -1, grain_size: cython.int = -1, window="hanning", max_window_size: cython.int = -1)

@@ -1,4 +1,4 @@
-audiopython.synthesis
+aus.synthesis
 ##############################
 
 .. py:function:: saw(freq: float, max_harmonic: int, len: int, sample_rate: int = 44100)

@@ -1,4 +1,4 @@
-audiopython.sampler
+aus.sampler
 ##############################
 
 .. py:function:: detect_loop_points(audio: np.ndarray, num_periods: int = 5, effective_zero: float = 0.001, maximum_amplitude_variance: float = 0.1, sample_amplitude_level_boundary: float = 0.1, loop_left_padding: int = 100, loop_right_padding: int = 100)
