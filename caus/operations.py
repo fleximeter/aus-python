@@ -190,8 +190,8 @@ def force_equal_energy(audio: np.ndarray, dbfs: cython.double = -6.0, window_siz
     energy_levels = np.empty((num_channels, num_frames + 2))  # the energy level for each frame
     
     # find the energy levels
-    idx = 1
     for i in range(num_channels):
+        idx = 1
         for j in range(0, audio.shape[-1], window_size):
             energy_levels[i, idx] = np.sqrt(np.average(np.square(audio[i, j:j+window_size])))
             idx += 1
