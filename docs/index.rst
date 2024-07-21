@@ -22,14 +22,14 @@ To use aus, first install it using pip:
    :maxdepth: 2
    :caption: Contents:
 
-   source/analysis
-   source/audiofile
-   source/granulator
-   source/operations
-   source/plot
-   source/sampler
-   source/spectrum
-   source/synthesis
+   analysis
+   audiofile
+   granulator
+   operations
+   plot
+   sampler
+   spectrum
+   synthesis
 
 
 Indices and tables

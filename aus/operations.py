@@ -178,36 +178,41 @@ def force_equal_energy(audio: np.ndarray, dbfs: cython.double = -6.0, window_siz
     """
     i: cython.int
     j: cython.int
+    k: cython.int
     idx: cython.int
     frame_idx: cython.int
-    while audio.ndim > 1:
-        audio = audio.sum(-2)
+    if audio.ndim == 1:
+        raise Exception("The audio array must have two dimensions.")
+    num_channels = audio.shape[0]
     audio_new = np.empty(audio.shape)  # the new array we'll be returning
     level_float = 10 ** (dbfs / 20)  # the target level, in float rather than dbfs
     num_frames = int(np.ceil(audio.shape[-1] / window_size))  # the number of frames that we'll be analyzing
-    energy_levels = np.empty((num_frames + 2))  # the energy level for each frame
+    energy_levels = np.empty((num_channels, num_frames + 2))  # the energy level for each frame
     
     # find the energy levels
     idx = 1
-    for i in range(0, audio.shape[-1], window_size):
-        energy_levels[idx] = np.sqrt(np.average(np.square(audio[i:i+window_size])))
-        idx += 1
-    energy_levels[0] = energy_levels[1]
-    energy_levels[-1] = energy_levels[-2]
+    for i in range(num_channels):
+        for j in range(0, audio.shape[-1], window_size):
+            energy_levels[i, idx] = np.sqrt(np.average(np.square(audio[i, j:j+window_size])))
+            idx += 1
+        energy_levels[i, 0] = energy_levels[i, 1]
+        energy_levels[i, -1] = energy_levels[i, -2]
 
     # do the first half frame
-    for j in range(0, window_size // 2):
-        audio_new[j] = audio[j] * level_float / energy_levels[0]
+    for i in range(num_channels):
+        for j in range(0, window_size // 2):
+            audio_new[i, j] = audio[i, j] * level_float / energy_levels[i, 0]
     
     # do adjacent half frames from 1 and 2, 2 and 3, etc.
-    frame_idx = 1
-    for i in range(window_size // 2, audio.shape[-1], window_size):
-        coef = (energy_levels[frame_idx + 1] - energy_levels[frame_idx]) / window_size
-        for j in range(i, min(i + window_size, audio.shape[-1])):
-            f = coef * (j - i) + energy_levels[frame_idx]
-            g = 1/f
-            audio_new[j] = audio[j] * g
-        frame_idx += 1
+    for i in range(num_channels):
+        frame_idx = 1
+        for j in range(window_size // 2, audio.shape[-1], window_size):
+            coef = (energy_levels[i, frame_idx + 1] - energy_levels[i, frame_idx]) / window_size
+            for k in range(j, min(j + window_size, audio.shape[-1])):
+                f = coef * (k - j) + energy_levels[i, frame_idx]
+                g = 1/f
+                audio_new[i, k] = audio[i, k] * g
+            frame_idx += 1
 
     audio_max = np.max(audio_new)
     return audio_new * level_float / audio_max
@@ -260,7 +265,7 @@ def leak_dc_bias_filter(audio: np.ndarray):
 def cpsmidi(freq: cython.double) -> cython.double:
     """
     Calculates the MIDI note of a provided frequency
-    :param freq: The frequency in Hz
+    :param midi_note: The frequency in Hz
     :return: The MIDI note
     """
     midi = np.log2(freq / 440) * 12 + 69
@@ -286,7 +291,7 @@ def midicps(midi_note: cython.double) -> cython.double:
 def midiratio(interval: cython.double) -> cython.double:
     """
     Calculates the MIDI ratio of a specified midi interval
-    :param interval: The MIDI interval in half steps
+    :param midi_note: The MIDI interval in half steps
     :return: The ratio
     """
     ratio = 2 ** (interval / 12)
@@ -376,7 +381,7 @@ def stochastic_exchanger(data: np.ndarray, max_hop: cython.int):
     return new_data
 
 
-def beat_envelope(tempo: float, sample_rate: int, beat_sequence: list, envelope_type: str = "hanning", envelope_duration: int = 1000) -> np.ndarray:
+def beat_envelope(tempo, sample_rate, beat_sequence, envelope_type="hanning", envelope_duration=1000) -> np.ndarray:
     """
     Generates a beat envelope. You specify the tempo, and provide a list of beat durations in order.
     This function will generate a volume envelope that can be applied to a sound file to make it
@@ -436,7 +441,7 @@ def beat_envelope(tempo: float, sample_rate: int, beat_sequence: list, envelope_
     return envelope
 
 
-def beat_envelope_multichannel(tempo: float, sample_rate: int, beat_sequence: list, num_channels: int, channel_levels: list, envelope_type="hanning", envelope_duration: int = 1000) -> np.ndarray:
+def beat_envelope_multichannel(tempo: float, sample_rate: int, beat_sequence: list, num_channels: int, channel_levels: list, envelope_type="hanning", envelope_duration=1000) -> np.ndarray:
     """
     Generates a multichannel beat envelope. You specify the tempo, and provide a list of N beat durations in order.
     You also specify the number of output channels M and a list of level tuples NxM - one level coefficient for each channel,
