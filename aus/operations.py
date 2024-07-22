@@ -26,7 +26,9 @@ def adjust_level(audio: np.ndarray, max_level: cython.double):
     """
     current_level = np.max(audio)
     target_level = 10 ** (max_level / 20)
-    return audio * (target_level / current_level)
+    target_audio = audio / current_level * target_level
+    target_audio = np.nan_to_num(target_audio)
+    return audio
 
 
 @cython.cfunc
