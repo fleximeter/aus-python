@@ -339,20 +339,13 @@ def _read_wav(file_name: str, header_only=False) -> AudioFile:
 
                 # If we've read the FMT chunk
                 if subchunk_header[:4] == FMT_CHUNK_1:
-                    # Verify that the format is valid. We only support formats 1 and 3 at the moment (PCM and float).
                     audio_file.audio_format = int.from_bytes(subchunk_data[:2], byteorder="little", signed=False)
-                    if audio_file.audio_format != 1 and audio_file.audio_format != 3:
-                        valid_file = False
-                        print(f"Bad audio format: {audio_file.audio_format}")
-                        
-                    # If the format is PCM, we continue and read the rest of the format subchunk
-                    else:
-                        audio_file.num_channels = int.from_bytes(subchunk_data[2:4], byteorder="little", signed=False)                    
-                        audio_file.sample_rate = int.from_bytes(subchunk_data[4:8], byteorder="little", signed=False)
-                        audio_file.byte_rate = int.from_bytes(subchunk_data[8:12], byteorder="little", signed=False)
-                        audio_file.block_align = int.from_bytes(subchunk_data[12:14], byteorder="little", signed=False)
-                        audio_file.bits_per_sample = int.from_bytes(subchunk_data[14:16], byteorder="little", signed=False)
-                        audio_file.bytes_per_sample = audio_file.bits_per_sample // 8
+                    audio_file.num_channels = int.from_bytes(subchunk_data[2:4], byteorder="little", signed=False)                    
+                    audio_file.sample_rate = int.from_bytes(subchunk_data[4:8], byteorder="little", signed=False)
+                    audio_file.byte_rate = int.from_bytes(subchunk_data[8:12], byteorder="little", signed=False)
+                    audio_file.block_align = int.from_bytes(subchunk_data[12:14], byteorder="little", signed=False)
+                    audio_file.bits_per_sample = int.from_bytes(subchunk_data[14:16], byteorder="little", signed=False)
+                    audio_file.bytes_per_sample = audio_file.bits_per_sample // 8
 
                 # Detect if we've read a data subchunk. If this is something else
                 # (e.g. a JUNK subchunk), we ignore it.

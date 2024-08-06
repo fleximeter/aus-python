@@ -83,7 +83,7 @@ def extract_samples(audio: np.ndarray, amplitude_regions: list, pre_frames_to_in
     return samples
 
 
-@cython.cfunc
+
 def identify_amplitude_regions(audio: np.ndarray, level_delimiter: cython.double = -30, 
                                num_consecutive: cython.int = 10, scale_level_delimiter: bool = True) -> list:
     """
@@ -151,7 +151,7 @@ def identify_amplitude_regions(audio: np.ndarray, level_delimiter: cython.double
     return regions
 
 
-@cython.cfunc
+
 def detect_peaks(audio: np.ndarray) -> list:
     """
     Detects peaks in an audio file. A peak is located at a sample N where the waveform changes direction.
@@ -177,7 +177,7 @@ def detect_peaks(audio: np.ndarray) -> list:
     return peaks
 
 
-@cython.cfunc
+
 def fit_amplitude_envelope(audio: np.ndarray, chunk_width: cython.int = 5000) -> list:
     """
     Fits an amplitude envelope to a provided audio file.
@@ -203,7 +203,7 @@ def fit_amplitude_envelope(audio: np.ndarray, chunk_width: cython.int = 5000) ->
     return envelope
 
 
-@cython.cfunc
+
 def detect_major_peaks(audio: np.ndarray, min_percentage_of_max: cython.double = 0.9, chunk_width: cython.int = 5000) -> list:
     """
     Detects major peaks in an audio file. A major peak is a sample peak that is one of the highest in its "local region."
@@ -258,7 +258,7 @@ def detect_major_peaks(audio: np.ndarray, min_percentage_of_max: cython.double =
     return peaks
 
 
-@cython.cfunc
+
 def detect_loop_points(audio: np.ndarray, num_periods: cython.int = 5, effective_zero: cython.double = 0.001, 
                        maximum_amplitude_variance: cython.double = 0.1, sample_amplitude_level_boundary: cython.double = 0.1, 
                        loop_left_padding: cython.int=100, loop_right_padding: cython.int=100) -> list:

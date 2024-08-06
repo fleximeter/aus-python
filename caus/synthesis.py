@@ -10,7 +10,7 @@ import cython
 import numpy as np
 
 
-@cython.cfunc
+
 def saw(freq: cython.double, max_harmonic: cython.int, len: cython.int, sample_rate: cython.int = 44100):
     """
     Generates a sawtooth tone
@@ -35,7 +35,7 @@ def saw(freq: cython.double, max_harmonic: cython.int, len: cython.int, sample_r
     return sig
 
 
-@cython.cfunc
+
 def sine(freq: cython.double, phase: cython.double, len: cython.int, sample_rate: cython.int = 44100):
     """
     Generates a sine tone
@@ -56,7 +56,7 @@ def sine(freq: cython.double, phase: cython.double, len: cython.int, sample_rate
     return sig
 
 
-@cython.cfunc
+
 def square(freq: cython.double, max_harmonic: cython.int, len: cython.int, sample_rate: cython.int = 44100):
     """
     Generates a square tone
@@ -82,7 +82,7 @@ def square(freq: cython.double, max_harmonic: cython.int, len: cython.int, sampl
     return sig
 
 
-@cython.cfunc
+
 def triangle(freq: cython.double, max_harmonic: cython.int, len: cython.int, sample_rate: cython.int = 44100):
     """
     Generates a triangle tone

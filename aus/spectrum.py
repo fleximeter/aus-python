@@ -11,7 +11,7 @@ import numpy as np
 from typing import Tuple
 
 
-@cython.cfunc
+
 def fft_data_decompose(fft_data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     Decomposes FFT data from a Numpy array into arrays of amplitudes and phases.
@@ -24,7 +24,7 @@ def fft_data_decompose(fft_data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     return amps, phases
 
 
-@cython.cfunc
+
 def fft_data_recompose(amps: np.ndarray, phases: np.ndarray) -> np.ndarray:
     """
     Recomposes FFT data from arrays of amplitudes and phases

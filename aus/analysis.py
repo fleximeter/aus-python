@@ -49,7 +49,7 @@ def analyzer(audio: np.ndarray, sample_rate: int) -> dict:
     return results
 
 
-@cython.cfunc
+
 def energy(audio: np.ndarray) -> cython.double:
     """
     Extracts the RMS energy of the signal
@@ -63,7 +63,7 @@ def energy(audio: np.ndarray) -> cython.double:
     return energy
 
 
-@cython.cfunc
+
 def spectral_centroid(magnitude_spectrum: np.ndarray, magnitude_freqs: np.ndarray, magnitude_spectrum_sum) -> cython.double:
     """
     Calculates the spectral centroid from provided magnitude spectrum
@@ -79,7 +79,7 @@ def spectral_centroid(magnitude_spectrum: np.ndarray, magnitude_freqs: np.ndarra
     return centroid
 
 
-@cython.cfunc
+
 def spectral_entropy(spectrum_pmf: np.ndarray) -> cython.double:
     """
     Calculates the spectral entropy from provided power spectrum
@@ -95,7 +95,7 @@ def spectral_entropy(spectrum_pmf: np.ndarray) -> cython.double:
     return entropy
 
 
-@cython.cfunc
+
 def spectral_flatness(magnitude_spectrum: np.ndarray, magnitude_spectrum_sum) -> cython.double:
     """
     Calculates the spectral flatness from provided magnitude spectrum
@@ -111,7 +111,7 @@ def spectral_flatness(magnitude_spectrum: np.ndarray, magnitude_spectrum_sum) ->
     return flatness
 
 
-@cython.cfunc
+
 def spectral_variance(spectrum_pmf: np.ndarray, magnitude_freqs: np.ndarray, spectral_centroid: cython.double) -> cython.double:
     """
     Calculates the spectral variance
@@ -128,7 +128,7 @@ def spectral_variance(spectrum_pmf: np.ndarray, magnitude_freqs: np.ndarray, spe
     return spectral_variance
 
 
-@cython.cfunc
+
 def spectral_skewness(spectrum_pmf: np.ndarray, magnitude_freqs: np.ndarray, spectral_centroid: cython.double, spectral_variance: cython.double) -> cython.double:
     """
     Calculates the spectral skewness
@@ -146,7 +146,7 @@ def spectral_skewness(spectrum_pmf: np.ndarray, magnitude_freqs: np.ndarray, spe
     return spectral_skewness
 
 
-@cython.cfunc
+
 def spectral_kurtosis(spectrum_pmf: np.ndarray, magnitude_freqs: np.ndarray, spectral_centroid: cython.double, spectral_variance: cython.double) -> cython.double:
     """
     Calculates the spectral kurtosis
@@ -164,7 +164,7 @@ def spectral_kurtosis(spectrum_pmf: np.ndarray, magnitude_freqs: np.ndarray, spe
     return spectral_kurtosis
 
 
-@cython.cfunc
+
 def spectral_roll_off_point(power_spectrum: np.ndarray, magnitude_freqs: np.ndarray, n: cython.double, power_spectrum_sum) -> cython.double:
     """
     Calculates the spectral roll off frequency from provided power spectrum
@@ -188,7 +188,7 @@ def spectral_roll_off_point(power_spectrum: np.ndarray, magnitude_freqs: np.ndar
     return roll_off
 
 
-@cython.cfunc
+
 def spectral_slope(power_spectrum: np.ndarray) -> cython.double:
     """
     Calculates the spectral slope from provided power spectrum.
@@ -204,7 +204,7 @@ def spectral_slope(power_spectrum: np.ndarray) -> cython.double:
     return slope
 
 
-@cython.cfunc
+
 def spectral_slope_region(power_spectrum: np.ndarray, rfftfreqs: np.ndarray, f_lower: cython.double, f_upper: cython.double, sample_rate: cython.int) -> cython.double:
     """
     Calculates the spectral slope from provided power spectrum, between the frequencies
@@ -248,7 +248,7 @@ def spectral_slope_region(power_spectrum: np.ndarray, rfftfreqs: np.ndarray, f_l
     return slope
 
 
-@cython.cfunc
+
 def zero_crossing_rate(audio: np.ndarray, sample_rate: cython.int) -> cython.double:
     """
     Extracts the zero-crossing rate
