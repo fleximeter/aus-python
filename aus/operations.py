@@ -17,7 +17,7 @@ _rng = random.Random()
 
 
 
-def adjust_level(audio: np.ndarray, max_level: float, max_scalar: float = 1e6):
+def adjust_level(audio: np.ndarray, max_level: float, max_scalar: float = 1e10):
     """
     Adjusts the level of audio to a specified dB level
     :param audio: The audio samples as a NumPy array
@@ -25,7 +25,7 @@ def adjust_level(audio: np.ndarray, max_level: float, max_scalar: float = 1e6):
     :param max_scalar: The maximum scalar to use when adjusting audio level
     :return: The scaled audio
     """
-    current_level = np.max(audio)
+    current_level = np.max(np.abs(audio))
     target_level = 10 ** (max_level / 20)
     scalar = target_level / current_level
     scalar = min(scalar, max_scalar)
