@@ -43,12 +43,13 @@ aus.audiofile
     :return: A list of file names
     :rtype: list
 
-.. py:function:: read(file_name: str)
+.. py:function:: read(file_name: str, target_sample_rate: int)
 
     Reads an audio file (AIFF or WAV) and returns an ``AudioFile`` object containing the contents of the
     file. It uses the ``pedalboard`` library for speed.
 
     :param str file_name: The name of the file
+    :param target_sample_rate: The target sample rate of the audio
     :return: An AudioFile
     :rtype: AudioFile
 

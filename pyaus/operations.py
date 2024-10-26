@@ -16,16 +16,22 @@ np.seterr(divide="ignore")
 _rng = random.Random()
 
 
-def adjust_level(audio: np.array, max_level: float) -> np.array:
+def adjust_level(audio: np.ndarray, max_level: float, max_scalar: float = 1e6):
     """
     Adjusts the level of audio to a specified dB level
     :param audio: The audio samples as a NumPy array
     :param max_level: The max level for the audio
+    :param max_scalar: The maximum scalar to use when adjusting audio level
     :return: The scaled audio
     """
-    current_max = np.max(np.abs(audio))
-    target_max = 10 ** (max_level / 20)
-    return audio * (target_max / current_max)
+    current_level = np.max(np.abs(audio))
+    target_level = 10 ** (max_level / 20)
+    scalar = target_level / current_level
+    scalar = min(scalar, max_scalar)
+    scalar = max(scalar, 1/max_scalar)
+    target_audio = audio * scalar
+    target_audio = np.nan_to_num(target_audio)
+    return audio
 
 
 def calculate_dc_bias(audio: np.array):
