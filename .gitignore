@@ -1,3 +1,6 @@
+# for Macs
+.DS_Store
+
 # Other stuff
 *.sqlite3
 *.c
